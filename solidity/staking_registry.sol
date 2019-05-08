@@ -11,6 +11,8 @@ contract StakingRegistry {
     mapping(address => uint) private votes;
     mapping(address => mapping (address => uint)) private stakes;
     
+    event VoteChange(address indexed stakingAddress, uint totalVote);
+    
     function StakingRegistry() {
         owner = msg.sender;
         baseTarget = 1;
@@ -23,6 +25,7 @@ contract StakingRegistry {
     function vote(address stakingAddress) public payable {
         votes[stakingAddress] += msg.value;
         stakes[msg.sender][stakingAddress] += msg.value;
+        VoteChange(stakingAddress, votes[stakingAddress]);
     }
     
     function unvote(address stakingAddress, uint amount) public {
@@ -39,6 +42,7 @@ contract StakingRegistry {
             stakes[msg.sender][stakingAddress] = 0;
             msg.sender.transfer(currAmount);
         }
+        VoteChange(stakingAddress, votes[stakingAddress]);
     }
     
     function getVote(address stakingAddress) returns (uint) {
@@ -57,7 +61,7 @@ contract StakingRegistry {
         return seed;
     }
     
-    function setSeed(bytes32 newSeed) {
+    function setSeed(bytes32 newSeed) public {
         seed = newSeed;
     }
 }
