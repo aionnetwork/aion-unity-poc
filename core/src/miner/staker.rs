@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use aion_types::Address;
 use block::IsBlock;
-use client::MiningBlockChainClient;
+use client::{MiningBlockChainClient, BlockId};
 use engines::EthEngine;
 use blake2b::blake2b;
 use rcrypto::ed25519::{keypair, signature};
@@ -41,6 +41,7 @@ signature = 64 bytes
 signature (with public key) = 96 bytes
 */
 
+/// Represents a staking client
 pub struct Staker {
     engine: Arc<EthEngine>,
     staking_registry: Address,
@@ -48,13 +49,13 @@ pub struct Staker {
     keypair: [u8; 64], // private key + public key
 }
 
+/// Errors encountered when submitting a PoS block
 pub enum Error {
     /// The seed + signature are invalid.
     PosInvalid,
     /// Failed to import the block
     FailedToImport,
 }
-
 
 impl Staker {
     /// Create a staking client using a private key
@@ -85,8 +86,13 @@ impl Staker {
 
     /// Produce a PoS block
     pub fn produce_block(&self, miner: &Miner, client: &MiningBlockChainClient) -> Result<(), Error> {
-        // 0. get the latest pos block
-        let latest_pos_block = client.latest_pos_block();
+        // 1. create a PoS block template
+        let (raw_block, _) = miner.prepare_block(client);
+        let parent_hash = raw_block.header().parent_hash().clone();
+        let bare_hash = raw_block.header().bare_hash();
+
+        // 2. compute the seed and signature
+        let latest_pos_block = client.latest_pos_block(BlockId::Hash(parent_hash.clone()));
         let latest_seed = match latest_pos_block {
             Some(b) => {
                 let seal = b.header().seal();
@@ -95,13 +101,7 @@ impl Staker {
             }
             None => Vec::new(),
         };
-
-        // 1. compute the new seed
         let seed = self.sign(&latest_seed);
-
-        // 2. create and sign a block
-        let (raw_block, _) = miner.prepare_block(client);
-        let bare_hash = raw_block.header().bare_hash();
         let signature = self.sign(&bare_hash.0);
 
         // 3. seal the block

@@ -333,8 +333,8 @@ impl Miner {
                 // Do not reopen block to get a more accurate block timestamp
                 //
                 // Ideally, a new block should be created when
-                // 1. The best block changess
-                // 2. A timers buzzes
+                // 1. The best block changes
+                // 2. The timer buzzes
                 //
                 // Because of this, we need to disable the "reseal_on_txs" feature.
                 /*

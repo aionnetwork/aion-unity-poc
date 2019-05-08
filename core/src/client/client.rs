@@ -1812,19 +1812,11 @@ impl BlockChainClient for Client {
             .and_then(|a| if a.is_zero() { None } else { Some(a) })
     }
 
-    fn latest_pos_block(&self) -> Option<encoded::Block> {
+    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
         unimplemented!()
     }
 
-    fn latest_pow_block(&self) -> Option<encoded::Block> {
-        unimplemented!()
-    }
-
-    fn parent_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
-        unimplemented!()
-    }
-
-    fn parent_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
+    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
         unimplemented!()
     }
 }

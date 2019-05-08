@@ -841,19 +841,11 @@ impl BlockChainClient for TestBlockChainClient {
 
     fn registry_address(&self, _name: String, _block: BlockId) -> Option<Address> { None }
 
-    fn latest_pos_block(&self) -> Option<encoded::Block> {
+    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
         unimplemented!()
     }
 
-    fn latest_pow_block(&self) -> Option<encoded::Block> {
-        unimplemented!()
-    }
-
-    fn parent_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
-        unimplemented!()
-    }
-
-    fn parent_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
+    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
         unimplemented!()
     }
 }

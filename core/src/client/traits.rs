@@ -71,17 +71,11 @@ pub trait BlockChainClient: Sync + Send {
     /// Get block total difficulty.
     fn block_total_difficulty(&self, id: BlockId) -> Option<U256>;
 
-    /// Get the latest PoS block
-    fn latest_pos_block(&self) -> Option<encoded::Block>;
+    /// Get the latest PoS block, search from id (inclusive)
+    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block>;
 
-    /// Get the latest PoW block
-    fn latest_pow_block(&self) -> Option<encoded::Block>;
-
-    /// Get the parent PoS block of a block
-    fn parent_pos_block(&self, id: BlockId) -> Option<encoded::Block>;
-
-    /// Get the parent PoW block of a block
-    fn parent_pow_block(&self, id: BlockId) -> Option<encoded::Block>;
+    /// Get the latest PoW block, search from id (inclusive)
+    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block>;
 
     /// Attempt to get address nonce at given block.
     /// May not fail on BlockId::Latest.
