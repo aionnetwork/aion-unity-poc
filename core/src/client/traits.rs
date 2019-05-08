@@ -77,6 +77,12 @@ pub trait BlockChainClient: Sync + Send {
     /// Get the latest PoW block
     fn latest_pow_block(&self) -> Option<encoded::Block>;
 
+    /// Get the parent PoS block of a block
+    fn parent_pos_block(&self, id: BlockId) -> Option<encoded::Block>;
+
+    /// Get the parent PoW block of a block
+    fn parent_pow_block(&self, id: BlockId) -> Option<encoded::Block>;
+
     /// Attempt to get address nonce at given block.
     /// May not fail on BlockId::Latest.
     fn nonce(&self, address: &Address, id: BlockId) -> Option<U256>;

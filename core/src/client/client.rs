@@ -1819,6 +1819,14 @@ impl BlockChainClient for Client {
     fn latest_pow_block(&self) -> Option<encoded::Block> {
         unimplemented!()
     }
+
+    fn parent_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
+
+    fn parent_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
 }
 
 impl MiningBlockChainClient for Client {
