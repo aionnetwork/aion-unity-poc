@@ -1811,6 +1811,14 @@ impl BlockChainClient for Client {
             .ok()
             .and_then(|a| if a.is_zero() { None } else { Some(a) })
     }
+
+    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
+
+    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
 }
 
 impl MiningBlockChainClient for Client {

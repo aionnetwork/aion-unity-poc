@@ -840,6 +840,14 @@ impl BlockChainClient for TestBlockChainClient {
     fn registrar_address(&self) -> Option<Address> { None }
 
     fn registry_address(&self, _name: String, _block: BlockId) -> Option<Address> { None }
+
+    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
+
+    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
+        unimplemented!()
+    }
 }
 
 impl ProvingBlockChainClient for TestBlockChainClient {

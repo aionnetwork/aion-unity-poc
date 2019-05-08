@@ -303,7 +303,7 @@ impl Miner {
     }
 
     /// Prepares new block for sealing including top transactions from queue.
-    fn prepare_block(&self, client: &MiningBlockChainClient) -> (ClosedBlock, Option<H256>) {
+    pub fn prepare_block(&self, client: &MiningBlockChainClient) -> (ClosedBlock, Option<H256>) {
         trace_time!("prepare_block");
         let chain_info = client.chain_info();
         let (transactions, mut open_block, original_work_hash) = {

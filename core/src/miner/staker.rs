@@ -20,11 +20,15 @@
  ******************************************************************************/
 
 use aion_types::{Address, U256};
-use client::{BlockChainClient};
+use client::{BlockChainClient, MiningBlockChainClient};
 
 use key::{Ed25519KeyPair, Ed25519Secret, public_to_address_ed25519};
 
+use super::Miner;
+use block::IsBlock;
+
 pub struct Staker {
+    staking_registry: Address,
     address: Address,
     sk: [u8; 64],
 }
@@ -32,22 +36,25 @@ pub struct Staker {
 
 impl Staker {
     /// Create a staking client using a private key
-    pub fn new(sk: [u8; 64]) -> Staker {
+    pub fn new(staking_registry: Address, sk: [u8; 64]) -> Staker {
         let s = Ed25519Secret::from_slice(&sk).expect("Invalid private key");
         let key = Ed25519KeyPair::from_secret(s).expect("Failed to compute public key");
         Staker {
+            staking_registry,
             address: public_to_address_ed25519(key.public()),
             sk,
         }
     }
 
     /// Query the time delay of the staking account
-    pub fn time_delay(&self, client: &BlockChainClient) -> U256 {
+    pub fn time_delay(&self, client: &MiningBlockChainClient) -> U256 {
         U256::from(10)
     }
 
     /// Produce a PoS block
-    pub fn produce_block(&self, client: &BlockChainClient) {
+    pub fn produce_block(&self, miner: &Miner, client: &MiningBlockChainClient) {
+        let (block, _) = miner.prepare_block(client);
+        let bare_hash = block.header().bare_hash();
 
     }
 }
