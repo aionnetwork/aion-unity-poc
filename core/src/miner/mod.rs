@@ -46,6 +46,7 @@
 //! ```
 */
 mod miner;
+mod staker;
 mod stratum;
 pub mod external;
 
