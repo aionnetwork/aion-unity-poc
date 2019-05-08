@@ -19,20 +19,33 @@
  *
  ******************************************************************************/
 
-use aion_types::{Address, U256, Ed25519Public};
-use client::MiningBlockChainClient;
-use key::{Ed25519KeyPair, Ed25519Secret, public_to_address_ed25519, sign_ed25519, H256};
-use super::Miner;
-use block::IsBlock;
-use spec::Spec;
-use engines::EthEngine;
 use std::sync::Arc;
+
+use aion_types::Address;
+use block::IsBlock;
+use client::MiningBlockChainClient;
+use engines::EthEngine;
+use blake2b::blake2b;
+use rcrypto::ed25519::{keypair, signature};
+use spec::Spec;
+
+use super::Miner;
+
+/*
+===========================
+ED25519 basics
+===========================
+public key = 32 bytes
+private key = 32 bytes
+signature = 64 bytes
+signature (with public key) = 96 bytes
+*/
 
 pub struct Staker {
     engine: Arc<EthEngine>,
     staking_registry: Address,
     address: Address,
-    sk: Ed25519Secret,
+    keypair: [u8; 64], // private key + public key
 }
 
 pub enum Error {
@@ -48,21 +61,26 @@ impl Staker {
     pub fn new(
         spec: &Spec,
         staking_registry: Address,
-        sk: [u8; 64],
+        sk: [u8; 32],
     ) -> Staker {
-        let s = Ed25519Secret::from_slice(&sk).expect("Invalid private key");
-        let key = Ed25519KeyPair::from_secret(s).expect("Failed to compute public key");
+        let (keypair, pk) = keypair(&sk);
+
+        let hash = blake2b(pk);
+        let mut address = Address::default();
+        address.copy_from_slice(&hash[..]);
+        address.0[0] = 0xA0;
+
         Staker {
             engine: spec.engine.clone(),
             staking_registry,
-            address: public_to_address_ed25519(key.public()),
-            sk: key.secret().clone(),
+            address,
+            keypair,
         }
     }
 
     /// Query the time delay of the staking account
-    pub fn time_delay(&self, client: &MiningBlockChainClient) -> U256 {
-        U256::from(10)
+    pub fn time_delay(&self, client: &MiningBlockChainClient) -> u64 {
+        0u64
     }
 
     /// Produce a PoS block
@@ -73,26 +91,23 @@ impl Staker {
             Some(b) => {
                 let seal = b.header().seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                H256::from(&seed[0..96])
+                seed.clone()
             }
-            None => H256::zero(),
+            None => Vec::new(),
         };
 
         // 1. compute the new seed
-        let seed = H256::zero();
-        let seed = sign_ed25519(&self.sk, &latest_seed)
-            .expect("Failed to sign the previous seed");
+        let seed = self.sign(&latest_seed);
 
         // 2. create and sign a block
         let (raw_block, _) = miner.prepare_block(client);
         let bare_hash = raw_block.header().bare_hash();
-        let signature = sign_ed25519(&self.sk, &bare_hash)
-            .expect("Failed to sign a block");
+        let signature = self.sign(&bare_hash.0);
 
         // 3. seal the block
         let mut seal: Vec<Vec<u8>> = Vec::new();
-        seal.push(seed.get_signature().clone().into());
-        seal.push(signature.get_signature().clone().into());
+        seal.push(seed.to_vec());
+        seal.push(signature.to_vec());
         let sealed_block = raw_block.lock().try_seal(&*self.engine, seal).or_else(|(e, _)| {
             warn!(target: "staker", "Seed + signature rejected: {}", e);
             Err(Error::PosInvalid)
@@ -107,5 +122,16 @@ impl Staker {
         // 5. done!
         info!(target: "staker", "The PoS block was imported.");
         Ok(())
+    }
+
+    fn sign(&self, message: &[u8]) -> [u8; 96] {
+        let pk = &self.keypair[32..64];
+        let signature = signature(message, &self.keypair);
+
+        let mut result = [0u8; 96];
+        result[0..32].copy_from_slice(pk);
+        result[32..96].copy_from_slice(&signature);
+
+        result
     }
 }
