@@ -2,15 +2,19 @@ pragma solidity ^0.4.15;
 
 contract StakingRegistry {
     
+    struct VoteSummary {
+        uint totalVote;
+        mapping (address => uint) details;
+    }
+    
     address private owner;
     
     uint private baseTarget;
     bytes32 private seed;
     
     mapping(address => bool) public stakers;
-    mapping(address => uint) private votes;
-    mapping(address => mapping (address => uint)) private stakes;
-    
+    mapping(address => VoteSummary) private votes;
+
     event RegistrationChange(address indexed stakingAddress, bool status);
     event VoteChange(address indexed stakingAddress, uint totalVote);
     
@@ -27,30 +31,30 @@ contract StakingRegistry {
     
     function vote(address stakingAddress) public payable {
         require(stakers[stakingAddress]);
-        votes[stakingAddress] += msg.value;
-        stakes[msg.sender][stakingAddress] += msg.value;
-        VoteChange(stakingAddress, votes[stakingAddress]);
+        votes[stakingAddress].totalVote += msg.value;
+        votes[stakingAddress].details[msg.sender] += msg.value;
+        VoteChange(stakingAddress, votes[stakingAddress].totalVote);
     }
     
     function unvote(address stakingAddress, uint amount) public {
-        uint currAmount = stakes[msg.sender][stakingAddress];
-        uint currVote = votes[stakingAddress];
+        uint currAmount = votes[stakingAddress].details[msg.sender];
+        uint currVote = votes[stakingAddress].totalVote;
         if (amount < currAmount) {
             currAmount -= amount;
             currVote -= amount;
-            votes[stakingAddress] = currVote;
-            stakes[msg.sender][stakingAddress] = currAmount;
+            votes[stakingAddress].totalVote = currVote;
+            votes[stakingAddress].details[msg.sender] = currAmount;
             msg.sender.transfer(amount);
         } else {
-            votes[stakingAddress] = currVote - currAmount;
-            stakes[msg.sender][stakingAddress] = 0;
+            votes[stakingAddress].totalVote = currVote - currAmount;
+            votes[stakingAddress].details[msg.sender] = 0;
             msg.sender.transfer(currAmount);
         }
-        VoteChange(stakingAddress, votes[stakingAddress]);
+        VoteChange(stakingAddress, votes[stakingAddress].totalVote);
     }
     
     function getVote(address stakingAddress) returns (uint) {
-        return votes[stakingAddress];
+        return votes[stakingAddress].totalVote;
     }
     
     function getBaseTarget() public returns (uint) {
