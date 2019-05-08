@@ -11,6 +11,7 @@ contract StakingRegistry {
     mapping(address => uint) private votes;
     mapping(address => mapping (address => uint)) private stakes;
     
+    event RegistrationChange(address indexed stakingAddress, bool status);
     event VoteChange(address indexed stakingAddress, uint totalVote);
     
     function StakingRegistry() {
@@ -21,6 +22,7 @@ contract StakingRegistry {
     function register(address stakingAddress) {
         require(msg.sender == stakingAddress);
         stakers[stakingAddress] = true;
+        RegistrationChange(stakingAddress, true);
     }
     
     function vote(address stakingAddress) public payable {
