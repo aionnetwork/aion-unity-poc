@@ -62,6 +62,39 @@ pub enum Seal {
     Without,
 }
 
+/// Seal Type
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum SealType {
+    /// Type for a block sealed with proof-of-work
+    Pow,
+    /// Type for a block sealed with proof-of-stake
+    Pos,
+}
+
+/// Implement Encodable for SealType to get included in header hash rlp
+impl Encodable for SealType {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        let v = match *self {
+            SealType::Pow => 0u32,
+            SealType::Pos => 1,
+        };
+        Encodable::rlp_append(&v, s);
+    }
+}
+
+/// Implement Dencodable for SealType to get parsed from header hash rlp
+impl Decodable for SealType {
+    fn decode(rlp: &UntrustedRlp) -> ::std::result::Result<Self, DecoderError> {
+        rlp.as_val().and_then(|v| {
+            Ok(match v {
+                0u32 => SealType::Pow,
+                1 => SealType::Pos,
+                _ => return Err(DecoderError::Custom("Invalid value of SealType item")),
+            })
+        })
+    }
+}
+
 // define more versions here.
 /// header version v1
 pub const V1: HeaderVersion = 1;
@@ -98,12 +131,17 @@ pub struct Header {
     gas_used: U256,
     /// Block gas limit. rlp order 11
     gas_limit: U256,
-
     /// Block difficulty. rlp order 8
     difficulty: U256,
+    /// Seal type. rlp order 13
+    seal_type: Option<SealType>,
     /// Vector of post-RLP-encoded fields.
-    // nonce rlp order 13
-    // solution rlp order 14
+    // For PoW:
+    //   nonce rlp order 14
+    //   solution rlp order 15
+    // For PoS:
+    //   signature rlp order 14
+    //   time_elapsed rlp order 15
     seal: Vec<Bytes>,
     /// The memoized hash of the RLP representation *including* the seal fields.
     hash: RefCell<Option<H256>>,
@@ -138,6 +176,7 @@ impl PartialEq for Header {
             && self.gas_limit == c.gas_limit
             && self.difficulty == c.difficulty
             && self.seal == c.seal
+            && self.seal_type == c.seal_type
             && self.transaction_fee == c.transaction_fee
             && self.reward == c.reward
     }
@@ -159,6 +198,7 @@ impl Default for Header {
             gas_used: U256::default(),
             gas_limit: U256::default(),
             difficulty: U256::default(),
+            seal_type: None,
             seal: vec![],
             hash: RefCell::new(None),
             bare_hash: RefCell::new(None),
@@ -215,6 +255,10 @@ impl Header {
             (((U256::one() << 255) / self.difficulty) << 1).into()
         }
     }
+
+    /// Get the seal type of the header
+    pub fn seal_type(&self) -> &Option<SealType> { &self.seal_type }
+
     /// Get the seal field of the header.
     pub fn seal(&self) -> &[Bytes] { &self.seal }
 
@@ -237,41 +281,49 @@ impl Header {
         self.parent_hash = a;
         self.note_dirty();
     }
+
     /// Set the state root field of the header.
     pub fn set_state_root(&mut self, a: H256) {
         self.state_root = a;
         self.note_dirty();
     }
+
     /// Set the transactions root field of the header.
     pub fn set_transactions_root(&mut self, a: H256) {
         self.transactions_root = a;
         self.note_dirty()
     }
+
     /// Set the receipts root field of the header.
     pub fn set_receipts_root(&mut self, a: H256) {
         self.receipts_root = a;
         self.note_dirty()
     }
+
     /// Set the log bloom field of the header.
     pub fn set_log_bloom(&mut self, a: Bloom) {
         self.log_bloom = a;
         self.note_dirty()
     }
+
     /// Set the timestamp field of the header.
     pub fn set_timestamp(&mut self, a: u64) {
         self.timestamp = a;
         self.note_dirty();
     }
+
     /// Set the timestamp field of the header to the current time.
     pub fn set_timestamp_now(&mut self, but_later_than: u64) {
         self.timestamp = cmp::max(get_time().sec as u64, but_later_than + 1);
         self.note_dirty();
     }
+
     /// Set the number field of the header.
     pub fn set_number(&mut self, a: BlockNumber) {
         self.number = a;
         self.note_dirty();
     }
+
     /// Set the author field of the header.
     pub fn set_author(&mut self, a: Address) {
         if a != self.author {
@@ -293,6 +345,7 @@ impl Header {
         self.gas_used = a;
         self.note_dirty();
     }
+
     /// Set the gas limit field of the header.
     pub fn set_gas_limit(&mut self, a: U256) {
         self.gas_limit = a;
@@ -304,6 +357,13 @@ impl Header {
         self.difficulty = a;
         self.note_dirty();
     }
+
+    /// Set the seal type field of the header
+    pub fn set_seal_type(&mut self, a: SealType) {
+        self.seal_type = Some(a);
+        self.note_dirty();
+    }
+
     /// Set the seal field of the header.
     pub fn set_seal(&mut self, a: Vec<Bytes>) {
         self.seal = a;
@@ -402,6 +462,7 @@ impl Header {
         s.append(&self.gas_used);
         s.append(&self.gas_limit);
         s.append(&self.timestamp);
+        s.append(&self.seal_type);
         if let Seal::With = with_seal {
             for b in &self.seal {
                 s.append(b);
@@ -447,6 +508,7 @@ impl Decodable for Header {
             gas_used: to_u256(r.val_at::<Vec<u8>>(10)?, 8),
             gas_limit: to_u256(r.val_at::<Vec<u8>>(11)?, 8),
             timestamp: r.val_at::<U256>(12)?.low_u64(),
+            seal_type: r.val_at(13)?,
             seal: vec![],
             hash: RefCell::new(Some(blake2b(r.as_raw()))),
             bare_hash: RefCell::new(None),

@@ -28,7 +28,7 @@ use machine::EthereumMachine;
 use std::sync::Arc;
 use engines::Engine;
 use aion_types::U256;
-use header::Header;
+use header::{Header, SealType};
 use block::ExecutedBlock;
 use error::Error;
 use std::cmp;
@@ -45,6 +45,7 @@ use self::header_validators::{
 //    ExtraDataValidator,
     HeaderValidator,
     POWValidator,
+    POSValidator,
     EnergyConsumedValidator,
     EquihashSolutionValidator
 };
@@ -239,7 +240,17 @@ impl POWEquihashEngine {
         let mut block_header_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         block_header_validators.push(Box::new(VersionValidator {}));
         block_header_validators.push(Box::new(EnergyConsumedValidator {}));
-        block_header_validators.push(Box::new(POWValidator {}));
+        match header.seal_type() {
+            Some(SealType::Pow) => {
+                block_header_validators.push(Box::new(POWValidator {}));
+            }
+            Some(SealType::Pos) => {
+                block_header_validators.push(Box::new(POSValidator {}));
+            }
+            None => {
+                // TODO: return and handle error
+            }
+        }
 
         for v in block_header_validators.iter() {
             v.validate(header)?;
@@ -297,7 +308,17 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         let mut cheap_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         cheap_validators.push(Box::new(VersionValidator {}));
         cheap_validators.push(Box::new(EnergyConsumedValidator {}));
-        cheap_validators.push(Box::new(POWValidator {}));
+        match header.seal_type() {
+            Some(SealType::Pow) => {
+                cheap_validators.push(Box::new(POWValidator {}));
+            }
+            Some(SealType::Pos) => {
+                cheap_validators.push(Box::new(POSValidator {}));
+            }
+            None => {
+                // TODO: return and handle error
+            }
+        }
 
         for v in cheap_validators.iter() {
             v.validate(header)?;
