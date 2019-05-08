@@ -7,7 +7,7 @@ contract StakingRegistry {
     uint private baseTarget;
     bytes32 private seed;
     
-    address[] public stakers;
+    mapping(address => bool) public stakers;
     mapping(address => uint) private votes;
     mapping(address => mapping (address => uint)) private stakes;
     
@@ -19,10 +19,12 @@ contract StakingRegistry {
     }
     
     function register(address stakingAddress) {
-        stakers.push(stakingAddress);
+        require(msg.sender == stakingAddress);
+        stakers[stakingAddress] = true;
     }
     
     function vote(address stakingAddress) public payable {
+        require(stakers[stakingAddress]);
         votes[stakingAddress] += msg.value;
         stakes[msg.sender][stakingAddress] += msg.value;
         VoteChange(stakingAddress, votes[stakingAddress]);
