@@ -21,12 +21,12 @@
 
 use std::sync::{Arc, Weak};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use acore::account_provider::{AccountProvider, AccountProviderSettings};
 use acore::client::{BlockChainClient, Client, DatabaseCompactionProfile, VMType};
 use acore::miner::external::ExternalMiner;
-use acore::miner::{Miner, MinerOptions, MinerService};
+use acore::miner::{Miner, MinerOptions, MinerService, Staker};
 use acore::miner::{Stratum, StratumOptions};
 use acore::service::ClientService;
 use acore::transaction::local_transactions::TxIoMessage;
@@ -55,6 +55,9 @@ use tokio;
 use tokio::prelude::*;
 use user_defaults::UserDefaults;
 use acore::client::EngineClient;
+use std::sync::atomic::{AtomicBool, Ordering};
+use aion_types::Address;
+
 // Pops along with error messages when a password is missing or invalid.
 const VERIFY_PASSWORD_HINT: &'static str = "Make sure valid password is present in files passed \
                                             using `--password` or in the configuration file.";
@@ -237,6 +240,47 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
     let client = service.client();
 
+    // !!!FOR POC ONLY!!!
+
+    // periodically update sealing
+    let stop = Arc::new(AtomicBool::new(false));
+    thread::spawn({
+        let stop = stop.clone();
+        let client = client.clone();
+
+        move || while !stop.load(Ordering::SeqCst) {
+            info!(target: "run", "update sealing");
+            client.update_sealing();
+            thread::sleep(Duration::from_millis(3000));
+        }
+    });
+
+    // pos block producing
+    let staker = Staker::new(
+        &spec,
+        Address::default(), // staking contract
+        [0u8; 32] // private key
+    );
+    thread::spawn({
+        let stop = stop.clone();
+        let miner = miner.clone();
+        let client = client.clone();
+
+        move || while !stop.load(Ordering::SeqCst) {
+            let now = SystemTime::now();
+            let since_epoch = now.duration_since(UNIX_EPOCH)
+                .expect("Time went backwards");
+            let produce_time = staker.calc_produce_time(&*client);
+
+            if since_epoch.as_secs() * 1000 + since_epoch.subsec_nanos() as u64 / 1_000_000 >= produce_time {
+                info!(target: "run", "generating a PoS block");
+                staker.produce_block(&miner, &*client).ok();
+            }
+
+            thread::sleep(Duration::from_millis(500));
+        }
+    });
+
     // drop the spec to free up genesis state.
     drop(spec);
 
@@ -398,17 +442,12 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
     // Create a weak reference to the client so that we can wait on shutdown until it is dropped
     let weak_client = Arc::downgrade(&client);
 
-    // periodically update sealing
-    thread::spawn(move || {
-        loop {
-            info!(target: "run", "update sealing");
-            client.update_sealing();
-            thread::sleep(Duration::from_secs(3));
-        }
-    });
 
     // Handle exit
     wait_for_exit();
+
+    // emit the stop signal
+    stop.store(true, Ordering::SeqCst);
 
     // let _ = close.send(());
 

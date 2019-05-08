@@ -78,8 +78,8 @@ impl Staker {
         }
     }
 
-    /// Query the time delay of the staking account
-    pub fn time_delay(&self, client: &MiningBlockChainClient) -> u64 {
+    /// Calculate the block producing time of this staker
+    pub fn calc_produce_time(&self, client: &MiningBlockChainClient) -> u64 {
         0u64
     }
 
