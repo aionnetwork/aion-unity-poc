@@ -330,12 +330,21 @@ impl Miner {
                 .queue
                 .pop_if(|b| b.block().header().parent_hash() == &best_hash)
             {
+                // Do not reopen block to get a more accurate block timestamp
+                //
+                // Ideally, a new block should be created when
+                // 1. The best block changess
+                // 2. A timers buzzes
+                //
+                // Because of this, we need to disable the "reseal_on_txs" feature.
+                /*
                 Some(old_block) => {
                     trace!(target: "block", "prepare_block: Already have previous work; updating and returning");
                     // add transactions to old_block
                     client.reopen_block(old_block)
                 }
-                None => {
+                */
+                Some(_) | None => {
                     // block not found - create it.
                     trace!(target: "block", "prepare_block: No existing work - making new block");
                     client.prepare_open_block(

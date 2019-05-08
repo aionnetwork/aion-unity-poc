@@ -252,6 +252,8 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
             info!(target: "run", "update sealing");
             client.update_sealing();
             thread::sleep(Duration::from_millis(3000));
+
+            // TODO: refresh on best block change
         }
     });
 
