@@ -54,6 +54,7 @@ use sync::sync::SyncConfig;
 use tokio;
 use tokio::prelude::*;
 use user_defaults::UserDefaults;
+use acore::client::EngineClient;
 // Pops along with error messages when a password is missing or invalid.
 const VERIFY_PASSWORD_HINT: &'static str = "Make sure valid password is present in files passed \
                                             using `--password` or in the configuration file.";
@@ -396,6 +397,15 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
     // Create a weak reference to the client so that we can wait on shutdown until it is dropped
     let weak_client = Arc::downgrade(&client);
+
+    // periodically update sealing
+    thread::spawn(move || {
+        loop {
+            info!(target: "run", "update sealing");
+            client.update_sealing();
+            thread::sleep(Duration::from_secs(3));
+        }
+    });
 
     // Handle exit
     wait_for_exit();
