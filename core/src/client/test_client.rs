@@ -37,7 +37,7 @@ use kvdb::DBValue;
 use kvdb::{RepositoryConfig, DatabaseConfig, DbRepository};
 use bytes::Bytes;
 use rlp::*;
-use key::{generate_keypair, public_to_address_ed25519, Ed25519Signature};
+use key::{generate_keypair, public_to_address_ed25519};
 use tempdir::TempDir;
 use transaction::{self, Transaction, LocalizedTransaction, PendingTransaction, SignedTransaction, Action, DEFAULT_TRANSACTION_TYPE};
 use blockchain::{TreeRoute, BlockReceipts};
@@ -815,10 +815,6 @@ impl BlockChainClient for TestBlockChainClient {
             first_block_number: self.first_block.read().as_ref().map(|x| x.1),
             ancient_block_hash: self.ancient_block.read().as_ref().map(|x| x.0),
             ancient_block_number: self.ancient_block.read().as_ref().map(|x| x.1),
-            best_pos_block_hash: self.last_hash.read().clone(),
-            best_pos_block_number: number,
-            best_pos_block_timestamp: number,
-            best_pos_block_seed: Ed25519Signature::default(),
         }
     }
 

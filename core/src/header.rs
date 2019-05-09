@@ -434,7 +434,7 @@ impl Header {
     /// Place this header into an RLP stream `s`, optionally `with_seal`.
     pub fn stream_rlp(&self, s: &mut RlpStream, with_seal: Seal) {
         s.begin_list(
-            13 + match with_seal {
+            14 + match with_seal {
                 Seal::With => self.seal.len(),
                 _ => 0,
             },
@@ -515,8 +515,7 @@ impl Decodable for Header {
             transaction_fee: U256::default(),
             reward: U256::default(),
         };
-
-        for i in 13..r.item_count()? {
+        for i in 14..r.item_count()? {
             blockheader.seal.push(r.val_at(i)?);
         }
 

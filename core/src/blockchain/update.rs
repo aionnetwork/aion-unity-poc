@@ -21,11 +21,10 @@
  ******************************************************************************/
 use std::collections::HashMap;
 use aion_types::H256;
-use header::{BlockNumber, SealType};
+use header::BlockNumber;
 use blockchain::block_info::BlockInfo;
 use blockchain::extras::{BlockDetails, BlockReceipts, TransactionAddress};
 use blooms::{BloomGroup, GroupPosition};
-use keychain::ethkey::Ed25519Signature;
 
 /// Block extras update info.
 pub struct ExtrasUpdate<'a> {
@@ -45,8 +44,4 @@ pub struct ExtrasUpdate<'a> {
     pub blocks_blooms: HashMap<GroupPosition, BloomGroup>,
     /// Modified transaction addresses (None signifies removed transactions).
     pub transactions_addresses: HashMap<H256, Option<TransactionAddress>>,
-    /// Block seal type
-    pub seal_type: SealType,
-    /// Pos block seed
-    pub seed: Option<Ed25519Signature>,
 }

@@ -23,7 +23,6 @@
 use aion_types::{H256, U256};
 use bytes::Bytes;
 use header::BlockNumber;
-use keychain::ethkey::Ed25519Signature;
 
 /// Best block info.
 #[derive(Default)]
@@ -38,23 +37,6 @@ pub struct BestBlock {
     pub total_difficulty: U256,
     /// Best block uncompressed bytes
     pub block: Bytes,
-}
-
-/// Best pos block info.
-#[derive(Default)]
-pub struct BestPosBlock {
-    /// Best block hash.
-    pub hash: H256,
-    /// Best block number.
-    pub number: BlockNumber,
-    /// Best block timestamp.
-    pub timestamp: u64,
-    /// Best block total difficulty.
-    pub total_difficulty: U256,
-    /// Best block uncompressed bytes
-    pub block: Bytes,
-    /// Best pos block seed
-    pub seed: Ed25519Signature,
 }
 
 /// Best ancient block info. If the blockchain has a gap this keeps track of where it starts.

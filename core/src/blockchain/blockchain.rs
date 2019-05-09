@@ -40,7 +40,7 @@ use views::*;
 use log_entry::{LogEntry, LocalizedLogEntry};
 use receipt::Receipt;
 use blooms::{BloomGroup, GroupPosition};
-use blockchain::best_block::{BestBlock, BestPosBlock, BestAncientBlock};
+use blockchain::best_block::{BestBlock, BestAncientBlock};
 use blockchain::block_info::{BlockInfo, BlockLocation, BranchBecomingCanonChainData};
 use blockchain::extras::{BlockReceipts, BlockDetails, TransactionAddress, EPOCH_KEY_PREFIX, EpochTransitions};
 use types::blockchain_info::BlockChainInfo;
@@ -54,7 +54,6 @@ use engines::epoch::{Transition as EpochTransition, PendingTransition as Pending
 use rayon::prelude::*;
 use ansi_term::Colour;
 use kvdb::{DBTransaction, KeyValueDB};
-use keychain::ethkey::Ed25519Signature;
 
 extern crate blake2b;
 
@@ -230,8 +229,6 @@ pub struct BlockChain {
     blooms_config: bc::Config,
     // Current highest block
     best_block: RwLock<BestBlock>,
-    // Current highest PoS block
-    best_pos_block: RwLock<BestPosBlock>,
     // Stores best block of the first uninterrupted sequence of blocks. `None` if there are no gaps.
     // Only updated with `insert_unordered_block`.
     best_ancient_block: RwLock<Option<BestAncientBlock>>,
@@ -255,7 +252,6 @@ pub struct BlockChain {
     cache_man: Mutex<CacheManager<CacheId>>,
 
     pending_best_block: RwLock<Option<BestBlock>>,
-    pending_best_pos_block: RwLock<Option<BestPosBlock>>,
     pending_block_hashes: RwLock<HashMap<BlockNumber, H256>>,
     pending_block_details: RwLock<HashMap<H256, BlockDetails>>,
     pending_transaction_addresses: RwLock<HashMap<H256, Option<TransactionAddress>>>,
@@ -650,7 +646,6 @@ impl BlockChain {
             },
             first_block: None,
             best_block: RwLock::new(BestBlock::default()),
-            best_pos_block: RwLock::new(BestPosBlock::default()),
             best_ancient_block: RwLock::new(None),
             block_headers: RwLock::new(HashMap::new()),
             block_bodies: RwLock::new(HashMap::new()),
@@ -662,7 +657,6 @@ impl BlockChain {
             db: db.clone(),
             cache_man: Mutex::new(cache_man),
             pending_best_block: RwLock::new(None),
-            pending_best_pos_block: RwLock::new(None),
             pending_block_hashes: RwLock::new(HashMap::new()),
             pending_block_details: RwLock::new(HashMap::new()),
             pending_transaction_addresses: RwLock::new(HashMap::new()),
@@ -705,14 +699,6 @@ impl BlockChain {
             }
         };
 
-        // load best pos block
-        let best_pos_block_hash = H256::from_slice(
-            &bc.db
-                .get(db::COL_EXTRA, b"best_pos")
-                .expect("EXTRA db not be found")
-                .expect("Best pos block not found"),
-        );
-
         {
             // Fetch best block details
             let best_block_number = bc
@@ -727,26 +713,6 @@ impl BlockChain {
                 .expect("best block not found, db may crashed")
                 .into_inner();
             let best_block_timestamp = BlockView::new(&best_block_rlp).header().timestamp();
-
-            // Fetch best pos block details
-            let best_pos_block_number = bc
-                .block_number(&best_pos_block_hash)
-                .expect("best block not found, db may crashed");
-            let best_pos_block_total_difficulty = bc
-                .block_details(&best_pos_block_hash)
-                .expect("best block not found, db may crashed")
-                .total_difficulty;
-            let best_pos_block_rlp = bc
-                .block(&best_pos_block_hash)
-                .expect("best block not found, db may crashed")
-                .into_inner();
-            let best_pos_block_timestamp = BlockView::new(&best_pos_block_rlp).header().timestamp();
-            let best_pos_block_seed = BlockView::new(&best_pos_block_rlp)
-                .header()
-                .seal()
-                .get(0)
-                .expect("Sealed pos block seed not found")
-                .clone();
 
             let raw_first = bc
                 .db
@@ -810,16 +776,6 @@ impl BlockChain {
                 hash: best_block_hash,
                 timestamp: best_block_timestamp,
                 block: best_block_rlp,
-            };
-
-            let mut best_pos_block = bc.best_pos_block.write();
-            *best_pos_block = BestPosBlock {
-                number: best_pos_block_number,
-                total_difficulty: best_pos_block_total_difficulty,
-                hash: best_pos_block_hash,
-                timestamp: best_pos_block_timestamp,
-                block: best_pos_block_rlp,
-                seed: best_pos_block_seed.into(),
             };
 
             if let (Some(hash), Some(number)) = (best_ancient, best_ancient_number) {
@@ -960,7 +916,6 @@ impl BlockChain {
         }
 
         assert!(self.pending_best_block.read().is_none());
-        assert!(self.pending_best_pos_block.read().is_none());
 
         let compressed_header = compress(block.header_rlp().as_raw(), blocks_swapper());
         let compressed_body = compress(&Self::block_to_body(bytes), blocks_swapper());
@@ -980,10 +935,6 @@ impl BlockChain {
                 location: BlockLocation::CanonChain,
             };
 
-            let seal_type = header
-                .seal_type()
-                .expect("seal type does not exist in sealed block");
-
             self.prepare_update(
                 batch,
                 ExtrasUpdate {
@@ -995,20 +946,6 @@ impl BlockChain {
                     info: info,
                     timestamp: header.timestamp(),
                     block: bytes,
-                    seed: match seal_type {
-                        SealType::Pow => None,
-                        SealType::Pos => {
-                            Some(
-                                header
-                                    .seal()
-                                    .get(0)
-                                    .expect("sealed pos block seed not found")
-                                    .clone()
-                                    .into(),
-                            )
-                        }
-                    },
-                    seal_type: seal_type,
                 },
                 is_best,
             );
@@ -1053,10 +990,6 @@ impl BlockChain {
             let mut update = HashMap::new();
             update.insert(hash, block_details);
 
-            let seal_type = header
-                .seal_type()
-                .expect("seal type does not exist in sealed block");
-
             self.prepare_update(
                 batch,
                 ExtrasUpdate {
@@ -1068,20 +1001,6 @@ impl BlockChain {
                     info: info,
                     timestamp: header.timestamp(),
                     block: bytes,
-                    seed: match seal_type {
-                        SealType::Pow => None,
-                        SealType::Pos => {
-                            Some(
-                                header
-                                    .seal()
-                                    .get(0)
-                                    .expect("sealed pos block seed not found")
-                                    .clone()
-                                    .into(),
-                            )
-                        }
-                    },
-                    seal_type: seal_type,
                 },
                 is_best,
             );
@@ -1245,7 +1164,6 @@ impl BlockChain {
         }
 
         assert!(self.pending_best_block.read().is_none());
-        assert!(self.pending_best_pos_block.read().is_none());
 
         let compressed_header = compress(block.header_rlp().as_raw(), blocks_swapper());
         let compressed_body = compress(&Self::block_to_body(bytes), blocks_swapper());
@@ -1265,10 +1183,6 @@ impl BlockChain {
             );
         }
 
-        let seal_type = header
-            .seal_type()
-            .expect("seal type does not exist in sealed block");
-
         self.prepare_update(
             batch,
             ExtrasUpdate {
@@ -1280,20 +1194,6 @@ impl BlockChain {
                 info: info.clone(),
                 timestamp: header.timestamp(),
                 block: bytes,
-                seed: match seal_type {
-                    SealType::Pow => None,
-                    SealType::Pos => {
-                        Some(
-                            header
-                                .seal()
-                                .get(0)
-                                .expect("sealed pos block seed not found")
-                                .clone()
-                                .into(),
-                        )
-                    }
-                },
-                seal_type: seal_type,
             },
             true,
         );
@@ -1412,18 +1312,6 @@ impl BlockChain {
                     timestamp: update.timestamp,
                     block: update.block.to_vec(),
                 });
-                if update.seal_type == SealType::Pos {
-                    batch.put(db::COL_EXTRA, b"best_pos", &update.info.hash);
-                    let mut best_pos_block = self.pending_best_pos_block.write();
-                    *best_pos_block = Some(BestPosBlock {
-                        hash: update.info.hash,
-                        number: update.info.number,
-                        total_difficulty: update.info.total_difficulty,
-                        timestamp: update.timestamp,
-                        block: update.block.to_vec(),
-                        seed: update.seed.expect("sealed pos block seed not found"),
-                    });
-                }
             }
 
             let mut write_hashes = self.pending_block_hashes.write();
@@ -1454,23 +1342,17 @@ impl BlockChain {
     /// Apply pending insertion updates
     pub fn commit(&self) {
         let mut pending_best_block = self.pending_best_block.write();
-        let mut pending_best_pos_block = self.pending_best_pos_block.write();
         let mut pending_write_hashes = self.pending_block_hashes.write();
         let mut pending_block_details = self.pending_block_details.write();
         let mut pending_write_txs = self.pending_transaction_addresses.write();
 
         let mut best_block = self.best_block.write();
-        let mut best_pos_block = self.best_pos_block.write();
         let mut write_block_details = self.block_details.write();
         let mut write_hashes = self.block_hashes.write();
         let mut write_txs = self.transaction_addresses.write();
         // update best block
         if let Some(block) = pending_best_block.take() {
             *best_block = block;
-        }
-        // update best pos block
-        if let Some(block) = pending_best_pos_block.take() {
-            *best_pos_block = block;
         }
 
         let pending_txs = mem::replace(&mut *pending_write_txs, HashMap::new());
@@ -1757,37 +1639,9 @@ impl BlockChain {
     /// Get best block total difficulty.
     pub fn best_block_total_difficulty(&self) -> U256 { self.best_block.read().total_difficulty }
 
-    /// Get best pos block hash.
-    pub fn best_pos_block_hash(&self) -> H256 { self.best_pos_block.read().hash }
-
-    /// Get best pos block number.
-    pub fn best_pos_block_number(&self) -> BlockNumber { self.best_pos_block.read().number }
-
-    /// Get best pos block timestamp.
-    pub fn best_pos_block_timestamp(&self) -> u64 { self.best_pos_block.read().timestamp }
-
-    /// Get best pos block total difficulty.
-    pub fn best_pos_block_total_difficulty(&self) -> U256 {
-        self.best_pos_block.read().total_difficulty
-    }
-
-    /// Get best pos block seed.
-    pub fn best_pos_block_seed(&self) -> Ed25519Signature { self.best_pos_block.read().seed }
-
     /// Get best block header
     pub fn best_block_header(&self) -> encoded::Header {
         let block = self.best_block.read();
-        let raw = BlockView::new(&block.block)
-            .header_view()
-            .rlp()
-            .as_raw()
-            .to_vec();
-        encoded::Header::new(raw)
-    }
-
-    /// Get best pos block header
-    pub fn best_pos_block_header(&self) -> encoded::Header {
-        let block = self.best_pos_block.read();
         let raw = BlockView::new(&block.block)
             .header_view()
             .rlp()
@@ -1878,7 +1732,6 @@ impl BlockChain {
     pub fn chain_info(&self) -> BlockChainInfo {
         // ensure data consistencly by locking everything first
         let best_block = self.best_block.read();
-        let best_pos_block = self.best_pos_block.read();
         let best_ancient_block = self.best_ancient_block.read();
         BlockChainInfo {
             total_difficulty: best_block.total_difficulty.clone(),
@@ -1891,10 +1744,6 @@ impl BlockChain {
             first_block_number: From::from(self.first_block_number()),
             ancient_block_hash: best_ancient_block.as_ref().map(|b| b.hash),
             ancient_block_number: best_ancient_block.as_ref().map(|b| b.number),
-            best_pos_block_hash: best_pos_block.hash,
-            best_pos_block_number: best_pos_block.number,
-            best_pos_block_timestamp: best_pos_block.timestamp,
-            best_pos_block_seed: best_pos_block.seed,
         }
     }
 }
