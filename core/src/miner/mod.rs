@@ -46,10 +46,12 @@
 //! ```
 */
 mod miner;
+mod staker;
 mod stratum;
 pub mod external;
 
 pub use self::miner::{Miner, MinerOptions, Banning, PendingSet};
+pub use self::staker::Staker;
 pub use self::stratum::{Stratum, Error as StratumError, Options as StratumOptions, NotifyWork};
 
 pub use transaction::local_transactions::Status as LocalTransactionStatus;
