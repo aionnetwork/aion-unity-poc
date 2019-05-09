@@ -23,11 +23,12 @@ use std::sync::Arc;
 
 use aion_types::Address;
 use block::IsBlock;
-use client::{MiningBlockChainClient, BlockId};
+use client::MiningBlockChainClient;
 use engines::EthEngine;
 use blake2b::blake2b;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
+use header::SealType;
 
 use super::Miner;
 
@@ -59,11 +60,7 @@ pub enum Error {
 
 impl Staker {
     /// Create a staking client using a private key
-    pub fn new(
-        spec: &Spec,
-        staking_registry: Address,
-        sk: [u8; 32],
-    ) -> Staker {
+    pub fn new(spec: &Spec, staking_registry: Address, sk: [u8; 32]) -> Staker {
         let (keypair, pk) = keypair(&sk);
 
         let hash = blake2b(pk);
@@ -81,26 +78,40 @@ impl Staker {
 
     /// Calculate the block producing time of this staker
     pub fn calc_produce_time(&self, client: &MiningBlockChainClient) -> u64 {
+        // get latest pos seed and timestamp
+        // lack of stake and difficulty for now
+        /* 
+        let latest_pos_block_header = client.best_block_header_with_seal_type(SealType::Pos);
+        let latest_seed = latest_pos_block_header
+            .seal()
+            .get(0)
+            .expect("A pos block has to contain a seeds")
+            .clone();
+        let timestamp = latest_pos_block_header.timestamp();
+        */
+
         0u64
     }
 
     /// Produce a PoS block
-    pub fn produce_block(&self, miner: &Miner, client: &MiningBlockChainClient) -> Result<(), Error> {
+    pub fn produce_block(
+        &self,
+        miner: &Miner,
+        client: &MiningBlockChainClient,
+    ) -> Result<(), Error>
+    {
         // 1. create a PoS block template
         let (raw_block, _) = miner.prepare_block(client);
-        let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
 
         // 2. compute the seed and signature
-        let latest_pos_block = client.latest_pos_block(BlockId::Hash(parent_hash.clone()));
-        let latest_seed = match latest_pos_block {
-            Some(b) => {
-                let seal = b.header().seal();
-                let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                seed.clone()
-            }
-            None => Vec::new(),
-        };
+        let latest_pos_block_header = client.best_block_header_with_seal_type(SealType::Pos);
+        let latest_seed = latest_pos_block_header
+            .seal()
+            .get(0)
+            .expect("A pos block has to contain a seeds")
+            .clone();
+
         let seed = self.sign(&latest_seed);
         let signature = self.sign(&bare_hash.0);
 
@@ -108,10 +119,13 @@ impl Staker {
         let mut seal: Vec<Vec<u8>> = Vec::new();
         seal.push(seed.to_vec());
         seal.push(signature.to_vec());
-        let sealed_block = raw_block.lock().try_seal(&*self.engine, seal).or_else(|(e, _)| {
-            warn!(target: "staker", "Seed + signature rejected: {}", e);
-            Err(Error::PosInvalid)
-        })?;
+        let sealed_block = raw_block
+            .lock()
+            .try_seal(&*self.engine, seal)
+            .or_else(|(e, _)| {
+                warn!(target: "staker", "Seed + signature rejected: {}", e);
+                Err(Error::PosInvalid)
+            })?;
 
         // 4. import the block
         client.import_sealed_block(sealed_block).or_else(|e| {

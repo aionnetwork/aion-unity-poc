@@ -248,12 +248,14 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
         let stop = stop.clone();
         let client = client.clone();
 
-        move || while !stop.load(Ordering::SeqCst) {
-            info!(target: "run", "update sealing");
-            client.update_sealing();
-            thread::sleep(Duration::from_millis(3000));
+        move || {
+            while !stop.load(Ordering::SeqCst) {
+                info!(target: "run", "update sealing");
+                client.update_sealing();
+                thread::sleep(Duration::from_millis(3000));
 
-            // TODO: refresh on best block change
+                // TODO: refresh on best block change
+            }
         }
     });
 
@@ -261,25 +263,28 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
     let staker = Staker::new(
         &spec,
         Address::default(), // staking contract
-        [0u8; 32] // private key
+        [0u8; 32],          // private key
     );
     thread::spawn({
         let stop = stop.clone();
         let miner = miner.clone();
         let client = client.clone();
 
-        move || while !stop.load(Ordering::SeqCst) {
-            let now = SystemTime::now();
-            let since_epoch = now.duration_since(UNIX_EPOCH)
-                .expect("Time went backwards");
-            let produce_time = staker.calc_produce_time(&*client);
+        move || {
+            while !stop.load(Ordering::SeqCst) {
+                let now = SystemTime::now();
+                let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
+                let produce_time = staker.calc_produce_time(&*client);
 
-            if since_epoch.as_secs() * 1000 + since_epoch.subsec_nanos() as u64 / 1_000_000 >= produce_time {
-                info!(target: "run", "generating a PoS block");
-                staker.produce_block(&miner, &*client).ok();
+                if since_epoch.as_secs() * 1000 + since_epoch.subsec_nanos() as u64 / 1_000_000
+                    >= produce_time
+                {
+                    info!(target: "run", "generating a PoS block");
+                    staker.produce_block(&miner, &*client).ok();
+                }
+
+                thread::sleep(Duration::from_millis(500));
             }
-
-            thread::sleep(Duration::from_millis(500));
         }
     });
 
