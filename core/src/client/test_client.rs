@@ -588,7 +588,7 @@ impl BlockChainClient for TestBlockChainClient {
             .expect("Best block always has header.")
     }
 
-    fn best_block_header_with_seal_type(&self, _seal_type: SealType) -> encoded::Header {
+    fn best_block_header_with_seal_type(&self, _seal_type: SealType) -> Option<encoded::Header> {
         unimplemented!();
     }
 

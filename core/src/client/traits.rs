@@ -196,7 +196,7 @@ pub trait BlockChainClient: Sync + Send {
     fn best_block_header(&self) -> encoded::Header;
 
     /// Get the best block header with specified seal type.
-    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> encoded::Header;
+    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> Option<encoded::Header>;
 
     /// Get the previous block header of a given block with specified seal type.
     fn previous_block_header_with_seal_type(
