@@ -293,10 +293,10 @@ impl BlockProvider for BlockChain {
         seal_type: SealType,
     ) -> Option<encoded::Header>
     {
-        let parent_hash = self
-            .block_header_data(hash)
-            .expect("block header not found")
-            .parent_hash();
+        let parent_hash = match self.block_header_data(hash) {
+            Some(header) => header.parent_hash(),
+            None => return None,
+        };
         let mut parent_header = self.block_header_data(&parent_hash);
         while parent_header.is_some() && parent_header.clone().unwrap().number() >= 1 {
             if parent_header
