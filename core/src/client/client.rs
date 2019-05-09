@@ -1372,20 +1372,11 @@ impl BlockChainClient for Client {
     fn best_block_header(&self) -> encoded::Header { self.chain.read().best_block_header() }
 
     fn best_block_header_with_seal_type(&self, seal_type: SealType) -> encoded::Header {
-        let best_block_header = self.chain.read().best_block_header();
-        if best_block_header
-            .seal_type()
-            .expect("best block's seal type not found")
-            == seal_type
-        {
-            best_block_header
-        } else {
-            let best_block_hash = self.chain.read().best_block_hash();
-            self.chain
-                .read()
-                .previous_block_header_with_seal_type(&best_block_hash, seal_type)
-                .expect("best block for specified seal type does not exist")
-        }
+        let best_block_hash = self.chain.read().best_block_hash();
+        self.chain
+            .read()
+            .latest_block_header_with_seal_type(&best_block_hash, seal_type)
+            .expect("best block for specified seal type does not exist")
     }
 
     fn previous_block_header_with_seal_type(
@@ -1397,6 +1388,17 @@ impl BlockChainClient for Client {
         self.chain
             .read()
             .previous_block_header_with_seal_type(hash, seal_type)
+    }
+
+    fn latest_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        self.chain
+            .read()
+            .latest_block_header_with_seal_type(hash, seal_type)
     }
 
     fn block_header(&self, id: BlockId) -> Option<::encoded::Header> {

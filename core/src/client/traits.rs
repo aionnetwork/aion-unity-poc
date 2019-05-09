@@ -205,6 +205,13 @@ pub trait BlockChainClient: Sync + Send {
         seal_type: SealType,
     ) -> Option<encoded::Header>;
 
+    /// Get the previous(inclusive) block header of a given block with specified seal type.
+    fn latest_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>;
+
     /// Returns logs matching given filter.
     fn logs(&self, filter: Filter) -> Vec<LocalizedLogEntry>;
 

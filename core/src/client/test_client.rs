@@ -601,6 +601,15 @@ impl BlockChainClient for TestBlockChainClient {
         unimplemented!();
     }
 
+    fn latest_block_header_with_seal_type(
+        &self,
+        _hash: &H256,
+        _seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        unimplemented!();
+    }
+
     fn block_header(&self, id: BlockId) -> Option<encoded::Header> {
         self.block_hash(id)
             .and_then(|hash| {

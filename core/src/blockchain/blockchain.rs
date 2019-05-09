@@ -125,6 +125,13 @@ pub trait BlockProvider {
         seal_type: SealType,
     ) -> Option<encoded::Header>;
 
+    /// Get the previous(inclusive) block header with sepcified seal type
+    fn latest_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>;
+
     /// Get the block body (uncles and transactions).
     fn block_body(&self, hash: &H256) -> Option<encoded::Body>;
 
@@ -309,6 +316,30 @@ impl BlockProvider for BlockChain {
                 return parent_header;
             } else {
                 parent_header = self.block_header_data(&parent_header.unwrap().parent_hash());
+            }
+        }
+        None
+    }
+
+    /// Get the previous(inclusive) block header with sepcified seal type
+    fn latest_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        let mut header = self.block_header_data(&hash);
+        while header.is_some() && header.clone().unwrap().number() >= 1 {
+            if header
+                .clone()
+                .unwrap()
+                .seal_type()
+                .expect("sealed block does not have seal type")
+                == seal_type
+            {
+                return header;
+            } else {
+                header = self.block_header_data(&header.unwrap().parent_hash());
             }
         }
         None

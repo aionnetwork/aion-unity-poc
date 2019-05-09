@@ -400,6 +400,15 @@ mod tests {
             unimplemented!()
         }
 
+        fn latest_block_header_with_seal_type(
+            &self,
+            hash: &H256,
+            seal_type: SealType,
+        ) -> Option<encoded::Header>
+        {
+            unimplemented!()
+        }
+
         fn block_header_data(&self, hash: &H256) -> Option<encoded::Header> {
             self.block(hash)
                 .map(|b| b.header_view().rlp().as_raw().to_vec())
