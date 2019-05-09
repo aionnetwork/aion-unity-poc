@@ -31,7 +31,7 @@
 
 use block::Block as FullBlock;
 
-use header::{BlockNumber, HeaderVersion, Header as FullHeader};
+use header::{BlockNumber, HeaderVersion, Header as FullHeader, SealType};
 use transaction::UnverifiedTransaction;
 use views;
 
@@ -113,6 +113,9 @@ impl Header {
 
     /// Block extra data.
     pub fn extra_data(&self) -> Vec<u8> { self.view().extra_data() }
+
+    /// Block seal type.
+    pub fn seal_type(&self) -> Option<SealType> { self.view().seal_type() }
 
     /// Engine-specific seal fields.
     pub fn seal(&self) -> Vec<Vec<u8>> { self.view().seal() }

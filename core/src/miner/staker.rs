@@ -30,6 +30,7 @@ use client::{BlockId, MiningBlockChainClient};
 use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
+use header::SealType;
 
 use super::Miner;
 
@@ -61,11 +62,7 @@ pub enum Error {
 
 impl Staker {
     /// Create a staking client using a private key
-    pub fn new(
-        spec: &Spec,
-        staking_registry: Address,
-        sk: [u8; 32],
-    ) -> Staker {
+    pub fn new(spec: &Spec, staking_registry: Address, sk: [u8; 32]) -> Staker {
         let (keypair, pk) = keypair(&sk);
 
         let hash = blake2b(pk);
@@ -84,10 +81,9 @@ impl Staker {
     /// Calculate the block producing time of this staker
     pub fn calc_produce_time(&self, client: &MiningBlockChainClient) -> u64 {
         let map_offset: [u8; 32] = [
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x03,
         ];
         let map_key = self.address.0;
 
@@ -97,15 +93,20 @@ impl Staker {
         sha3.update(&map_key);
         sha3.finalize(&mut storage_key);
 
-        let stake = client.storage_at(&self.staking_registry, &H128::from(&storage_key[0..16]), BlockId::Latest)
+        let stake = client
+            .storage_at(
+                &self.staking_registry,
+                &H128::from(&storage_key[0..16]),
+                BlockId::Latest,
+            )
             .unwrap_or(H128::default());
 
-        let block = client.latest_pos_block(BlockId::Latest);
-        let (diff, timestamp, seed) = match block {
-            Some(b) => {
-                let seal = b.header().seal();
+        let latest_pos_block_header = client.best_block_header_with_seal_type(SealType::Pos);
+        let (diff, timestamp, seed) = match latest_pos_block_header {
+            Some(header) => {
+                let seal = header.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                (b.difficulty(), b.timestamp(), seed.clone())
+                (header.difficulty(), header.timestamp(), seed.clone())
             }
             None => (U256::from(1), 0u64, Vec::new()),
         };
@@ -116,28 +117,36 @@ impl Staker {
         let hash_of_seed = blake2b(&new_seed[..]);
         let two_to_256 = U512::from(1) << 32;
         let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln() / (U128::from(stake).as_u64() as f64);
+        let delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
+            / (U128::from(stake).as_u64() as f64);
 
         timestamp + delta as u64
     }
 
     /// Produce a PoS block
-    pub fn produce_block(&self, miner: &Miner, client: &MiningBlockChainClient) -> Result<(), Error> {
+    pub fn produce_block(
+        &self,
+        miner: &Miner,
+        client: &MiningBlockChainClient,
+    ) -> Result<(), Error>
+    {
         // 1. create a PoS block template
         let (raw_block, _) = miner.prepare_block(client);
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
 
         // 2. compute the seed and signature
-        let latest_pos_block = client.latest_pos_block(BlockId::Hash(parent_hash.clone()));
-        let latest_seed = match latest_pos_block {
-            Some(b) => {
-                let seal = b.header().seal();
+        let latest_pos_block_header =
+            client.latest_block_header_with_seal_type(&parent_hash, SealType::Pos);
+        let latest_seed = match latest_pos_block_header {
+            Some(header) => {
+                let seal = header.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
                 seed.clone()
             }
             None => Vec::new(),
         };
+
         let seed = self.sign(&latest_seed);
         let signature = self.sign(&bare_hash.0);
 
@@ -145,10 +154,13 @@ impl Staker {
         let mut seal: Vec<Vec<u8>> = Vec::new();
         seal.push(seed.to_vec());
         seal.push(signature.to_vec());
-        let sealed_block = raw_block.lock().try_seal(&*self.engine, seal).or_else(|(e, _)| {
-            warn!(target: "staker", "Seed + signature rejected: {}", e);
-            Err(Error::PosInvalid)
-        })?;
+        let sealed_block = raw_block
+            .lock()
+            .try_seal(&*self.engine, seal)
+            .or_else(|(e, _)| {
+                warn!(target: "staker", "Seed + signature rejected: {}", e);
+                Err(Error::PosInvalid)
+            })?;
 
         // 4. import the block
         client.import_sealed_block(sealed_block).or_else(|e| {

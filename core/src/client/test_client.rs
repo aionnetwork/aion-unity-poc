@@ -37,7 +37,7 @@ use kvdb::DBValue;
 use kvdb::{RepositoryConfig, DatabaseConfig, DbRepository};
 use bytes::Bytes;
 use rlp::*;
-use key::{generate_keypair, public_to_address_ed25519};
+use key::{generate_keypair, public_to_address_ed25519, Ed25519Signature};
 use tempdir::TempDir;
 use transaction::{self, Transaction, LocalizedTransaction, PendingTransaction, SignedTransaction, Action, DEFAULT_TRANSACTION_TYPE};
 use blockchain::{TreeRoute, BlockReceipts};
@@ -47,7 +47,7 @@ use client::{
     ProvingBlockChainClient,
 };
 use db::{COL_STATE, DB_NAMES};
-use header::{Header as BlockHeader, BlockNumber};
+use header::{Header as BlockHeader, BlockNumber, SealType};
 use filter::Filter;
 use log_entry::LocalizedLogEntry;
 use receipt::{Receipt, LocalizedReceipt};
@@ -588,6 +588,28 @@ impl BlockChainClient for TestBlockChainClient {
             .expect("Best block always has header.")
     }
 
+    fn best_block_header_with_seal_type(&self, _seal_type: SealType) -> Option<encoded::Header> {
+        unimplemented!();
+    }
+
+    fn previous_block_header_with_seal_type(
+        &self,
+        _hash: &H256,
+        _seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        unimplemented!();
+    }
+
+    fn latest_block_header_with_seal_type(
+        &self,
+        _hash: &H256,
+        _seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        unimplemented!();
+    }
+
     fn block_header(&self, id: BlockId) -> Option<encoded::Header> {
         self.block_hash(id)
             .and_then(|hash| {
@@ -793,6 +815,10 @@ impl BlockChainClient for TestBlockChainClient {
             first_block_number: self.first_block.read().as_ref().map(|x| x.1),
             ancient_block_hash: self.ancient_block.read().as_ref().map(|x| x.0),
             ancient_block_number: self.ancient_block.read().as_ref().map(|x| x.1),
+            best_pos_block_hash: self.last_hash.read().clone(),
+            best_pos_block_number: number,
+            best_pos_block_timestamp: number,
+            best_pos_block_seed: Ed25519Signature::default(),
         }
     }
 
@@ -840,14 +866,6 @@ impl BlockChainClient for TestBlockChainClient {
     fn registrar_address(&self) -> Option<Address> { None }
 
     fn registry_address(&self, _name: String, _block: BlockId) -> Option<Address> { None }
-
-    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block> {
-        unimplemented!()
-    }
-
-    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block> {
-        unimplemented!()
-    }
 }
 
 impl ProvingBlockChainClient for TestBlockChainClient {

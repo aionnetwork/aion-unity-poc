@@ -31,7 +31,7 @@ use vms::LastHashes;
 use factory::VmFactory;
 use executive::Executed;
 use filter::Filter;
-use header::{BlockNumber};
+use header::{BlockNumber, SealType};
 use log_entry::LocalizedLogEntry;
 use receipt::LocalizedReceipt;
 use transaction::{LocalizedTransaction, PendingTransaction, SignedTransaction};
@@ -70,12 +70,6 @@ pub trait BlockChainClient: Sync + Send {
 
     /// Get block total difficulty.
     fn block_total_difficulty(&self, id: BlockId) -> Option<U256>;
-
-    /// Get the latest PoS block, search from id (inclusive)
-    fn latest_pos_block(&self, id: BlockId) -> Option<encoded::Block>;
-
-    /// Get the latest PoW block, search from id (inclusive)
-    fn latest_pow_block(&self, id: BlockId) -> Option<encoded::Block>;
 
     /// Attempt to get address nonce at given block.
     /// May not fail on BlockId::Latest.
@@ -200,6 +194,23 @@ pub trait BlockChainClient: Sync + Send {
 
     /// Get the best block header.
     fn best_block_header(&self) -> encoded::Header;
+
+    /// Get the best block header with specified seal type.
+    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> Option<encoded::Header>;
+
+    /// Get the previous block header of a given block with specified seal type.
+    fn previous_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>;
+
+    /// Get the previous(inclusive) block header of a given block with specified seal type.
+    fn latest_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>;
 
     /// Returns logs matching given filter.
     fn logs(&self, filter: Filter) -> Vec<LocalizedLogEntry>;

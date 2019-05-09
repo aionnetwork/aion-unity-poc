@@ -27,6 +27,7 @@ extern crate ethbloom;
 extern crate acore_bytes as bytes;
 extern crate ajson;
 extern crate rlp;
+extern crate keychain;
 #[macro_use]
 extern crate rlp_derive;
 extern crate blake2b;

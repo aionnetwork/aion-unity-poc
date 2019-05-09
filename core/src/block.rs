@@ -264,6 +264,7 @@ impl<'x> OpenBlock<'x> {
             gas_floor_target,
             gas_ceil_target,
         );
+        // set difficulty
         engine.populate_from_parent(&mut r.block.header, parent, grant_parent);
 
         engine.machine().on_new_block(&mut r.block)?;
