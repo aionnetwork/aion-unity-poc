@@ -391,6 +391,15 @@ mod tests {
             self.blocks.get(hash).cloned().map(encoded::Block::new)
         }
 
+        fn previous_block_header_with_seal_type(
+            &self,
+            hash: &H256,
+            seal_type: SealType,
+        ) -> Option<encoded::Header>
+        {
+            unimplemented!()
+        }
+
         fn block_header_data(&self, hash: &H256) -> Option<encoded::Header> {
             self.block(hash)
                 .map(|b| b.header_view().rlp().as_raw().to_vec())

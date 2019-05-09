@@ -140,8 +140,8 @@ pub struct Header {
     //   nonce rlp order 14
     //   solution rlp order 15
     // For PoS:
-    //   signature rlp order 14
-    //   time_elapsed rlp order 15
+    //   seed rlp order 14
+    //   signature rlp order 15
     seal: Vec<Bytes>,
     /// The memoized hash of the RLP representation *including* the seal fields.
     hash: RefCell<Option<H256>>,

@@ -31,6 +31,7 @@ use Ed25519Secret;
 use aion_types::Ed25519Public;
 use rcrypto::ed25519::{signature, verify};
 
+#[derive(Clone, Copy)]
 pub struct Ed25519Signature([u8; 96]);
 
 impl Ed25519Signature {

@@ -539,6 +539,7 @@ dependencies = [
  "blake2b 0.1.0",
  "ethbloom 0.5.1",
  "heapsize 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "keychain 0.2.0",
  "rlp 0.2.1",
  "rlp_derive 0.1.0",
  "rustc-hex 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",

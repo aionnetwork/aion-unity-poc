@@ -12,6 +12,7 @@ aion-types = { path = "../../util/aion-types"}
 ethbloom = { path = "../../util/ethbloom"}
 ajson = { path = "../../json" }
 blake2b = { path = "../../util/blake2b" }
+keychain = { path = "../../keystore/keychain" }
 heapsize = "0.4"
 
 [dev-dependencies]

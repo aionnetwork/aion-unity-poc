@@ -27,6 +27,7 @@ use std::fmt;
 use aion_types::{U256, H256};
 use security_level::SecurityLevel;
 use {BlockNumber};
+use keychain::ethkey::Ed25519Signature;
 
 /// Information about the blockchain gathered together.
 #[derive(Clone, Debug)]
@@ -51,6 +52,14 @@ pub struct BlockChainInfo {
     pub first_block_hash: Option<H256>,
     /// Number of the first block on the best sequence.
     pub first_block_number: Option<BlockNumber>,
+    /// Best blockchain pos block hash.
+    pub best_pos_block_hash: H256,
+    /// Best blockchain pos block number.
+    pub best_pos_block_number: BlockNumber,
+    /// Best blockchain pos block timestamp.
+    pub best_pos_block_timestamp: u64,
+    /// Best blockchain pos block seed.
+    pub best_pos_block_seed: Ed25519Signature,
 }
 
 impl BlockChainInfo {

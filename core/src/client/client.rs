@@ -51,7 +51,7 @@ use engines::{EpochTransition, EthEngine};
 use error::{BlockError, CallError, ExecutionError, ImportError, ImportResult};
 use executive::{contract_address, Executed, Executive};
 use factory::{Factories, VmFactory};
-use header::{BlockNumber, Header, Seal};
+use header::{BlockNumber, Header, Seal, SealType};
 use io::*;
 use log_entry::LocalizedLogEntry;
 use miner::{Miner, MinerService};
@@ -1201,6 +1201,7 @@ impl Client {
             .block_hash(BlockId::Number(new_block))
             .expect("can not found block , db may crashed");
         batch.put(::db::COL_EXTRA, b"best", &new_best_hash);
+        // TODO_unity_poc: update also "best_pos" when revert blocks
         // reset state
         let latest_era_key = [b'l', b'a', b's', b't', 0, 0, 0, 0, 0, 0, 0, 0];
         batch.put(::db::COL_STATE, &latest_era_key, &encode(&new_block));
@@ -1369,6 +1370,34 @@ impl BlockChainClient for Client {
     fn spec_name(&self) -> String { self.config.spec_name.clone() }
 
     fn best_block_header(&self) -> encoded::Header { self.chain.read().best_block_header() }
+
+    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> encoded::Header {
+        let best_block_header = self.chain.read().best_block_header();
+        if best_block_header
+            .seal_type()
+            .expect("best block's seal type not found")
+            == seal_type
+        {
+            best_block_header
+        } else {
+            let best_block_hash = self.chain.read().best_block_hash();
+            self.chain
+                .read()
+                .previous_block_header_with_seal_type(&best_block_hash, seal_type)
+                .expect("best block for specified seal type does not exist")
+        }
+    }
+
+    fn previous_block_header_with_seal_type(
+        &self,
+        hash: &H256,
+        seal_type: SealType,
+    ) -> Option<encoded::Header>
+    {
+        self.chain
+            .read()
+            .previous_block_header_with_seal_type(hash, seal_type)
+    }
 
     fn block_header(&self, id: BlockId) -> Option<::encoded::Header> {
         let chain = self.chain.read();

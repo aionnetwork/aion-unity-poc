@@ -26,7 +26,7 @@ use bytes::Bytes;
 use aion_types::{H256, U256, Address, to_u256};
 use ethbloom::Bloom;
 use blake2b::blake2b;
-use header::BlockNumber;
+use header::{BlockNumber, SealType};
 use header::HeaderVersion;
 use rlp::Rlp;
 
@@ -95,10 +95,13 @@ impl<'a> HeaderView<'a> {
     /// Returns block extra data.
     pub fn extra_data(&self) -> Bytes { self.rlp.val_at(9) }
 
+    /// Returns block seal type.
+    pub fn seal_type(&self) -> Option<SealType> { self.rlp.val_at(13) }
+
     /// Returns a vector of post-RLP-encoded seal fields.
     pub fn seal(&self) -> Vec<Bytes> {
         let mut seal = vec![];
-        for i in 13..self.rlp.item_count() {
+        for i in 14..self.rlp.item_count() {
             seal.push(self.rlp.val_at(i));
         }
         seal
