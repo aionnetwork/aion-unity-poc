@@ -21,11 +21,13 @@
 
 use std::sync::Arc;
 
-use aion_types::Address;
-use block::IsBlock;
-use client::{MiningBlockChainClient, BlockId};
-use engines::EthEngine;
+use tiny_keccak::Keccak;
+
+use aion_types::{Address, H128, U128, U256, U512};
 use blake2b::blake2b;
+use block::IsBlock;
+use client::{BlockId, MiningBlockChainClient};
+use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
 
@@ -81,7 +83,42 @@ impl Staker {
 
     /// Calculate the block producing time of this staker
     pub fn calc_produce_time(&self, client: &MiningBlockChainClient) -> u64 {
-        0u64
+        let map_offset: [u8; 32] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+        ];
+        let map_key = self.address.0;
+
+        let mut storage_key: [u8; 32] = [0; 32];
+        let mut sha3 = Keccak::new_sha3_256();
+        sha3.update(&map_offset);
+        sha3.update(&map_key);
+        sha3.finalize(&mut storage_key);
+
+        let stake = client.storage_at(&self.staking_registry, &H128::from(&storage_key[0..16]), BlockId::Latest)
+            .unwrap_or(H128::default());
+
+        let block = client.latest_pos_block(BlockId::Latest);
+        let (diff, timestamp, seed) = match block {
+            Some(b) => {
+                let seal = b.header().seal();
+                let seed = seal.get(0).expect("A pos block has to contain a seeds");
+                (b.difficulty(), b.timestamp(), seed.clone())
+            }
+            None => (U256::from(1), 0u64, Vec::new()),
+        };
+
+        // \Delta = \frac{d_s \cdot ln({2^{256}}/{hash(seed)})}{V}.
+        // NOTE: never use floating point in production
+        let new_seed = self.sign(&seed);
+        let hash_of_seed = blake2b(&new_seed[..]);
+        let two_to_256 = U512::from(1) << 32;
+        let division = two_to_256 / U512::from(&hash_of_seed[..]);
+        let delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln() / (U128::from(stake).as_u64() as f64);
+
+        timestamp + delta as u64
     }
 
     /// Produce a PoS block
