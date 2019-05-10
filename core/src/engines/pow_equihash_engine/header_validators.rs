@@ -166,26 +166,3 @@ impl HeaderValidator for POWValidator {
         Ok(())
     }
 }
-
-pub struct POSValidator;
-
-impl HeaderValidator for POSValidator {
-    fn validate(&self, header: &Header) -> Result<(), Error> {
-        let seal = header.seal();
-        if seal.len() != 2 {
-            error!(target: "pos", "seal length != 2");
-            return Err(BlockError::InvalidSealArity(Mismatch {
-                expected: 2,
-                found: seal.len(),
-            })
-            .into());
-        }
-
-        let signature = &seal[0];
-        debug!(target: "pos", "signature: {}", to_hex(signature.as_slice()));
-        let time_elapsed = &seal[1];
-        debug!(target: "pos", "time_elapsed: {}", to_hex(time_elapsed.as_slice()));
-
-        Ok(())
-    }
-}

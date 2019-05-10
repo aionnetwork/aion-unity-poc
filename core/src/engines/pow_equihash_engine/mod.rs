@@ -45,11 +45,10 @@ use self::header_validators::{
 //    ExtraDataValidator,
     HeaderValidator,
     POWValidator,
-    POSValidator,
     EnergyConsumedValidator,
     EquihashSolutionValidator
 };
-use self::grant_parent_header_validators::{GrantParentHeaderValidator, DifficultyValidator};
+use self::grant_parent_header_validators::{GrantParentHeaderValidator, DifficultyValidator, POSValidator};
 
 #[derive(Debug, PartialEq)]
 pub struct POWEquihashEngineParams {
@@ -179,18 +178,15 @@ impl DifficultyCalc {
             return parent_difficulty;
         }
         let grand_parent = grand_parent.expect("Pos grand parent unwrap tested before");
-
         let parent_timestamp = parent.timestamp();
         let grand_parent_timestamp = grand_parent.timestamp();
-        let delta_time = grand_parent_timestamp - parent_timestamp;
+        let delta_time = parent_timestamp - grand_parent_timestamp;
         assert!(delta_time > 0);
 
         let a = 1 / 128;
         let target_block_time = 10f64;
         let lambda: f64 = 1f64 / (2f64 * target_block_time);
-        println!("lambda: {:?}", lambda);
         let x = -0.5f64.ln() / lambda;
-        println!("x: {:?}", x);
         match delta_time as f64 - x {
             res if res > 0f64 => parent_difficulty / U256::from(1 + a),
             res if res < 0f64 => parent_difficulty * U256::from(1 + a),
@@ -264,16 +260,8 @@ impl POWEquihashEngine {
         let mut block_header_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         block_header_validators.push(Box::new(VersionValidator {}));
         block_header_validators.push(Box::new(EnergyConsumedValidator {}));
-        match header.seal_type() {
-            Some(SealType::Pow) => {
-                block_header_validators.push(Box::new(POWValidator {}));
-            }
-            Some(SealType::Pos) => {
-                block_header_validators.push(Box::new(POSValidator {}));
-            }
-            None => {
-                // TODO: return and handle error
-            }
+        if header.seal_type().clone() == Some(SealType::Pow) {
+            block_header_validators.push(Box::new(POWValidator {}));
         }
 
         for v in block_header_validators.iter() {
@@ -352,16 +340,8 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         let mut cheap_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         cheap_validators.push(Box::new(VersionValidator {}));
         cheap_validators.push(Box::new(EnergyConsumedValidator {}));
-        match header.seal_type() {
-            Some(SealType::Pow) => {
-                cheap_validators.push(Box::new(POWValidator {}));
-            }
-            Some(SealType::Pos) => {
-                cheap_validators.push(Box::new(POSValidator {}));
-            }
-            None => {
-                // TODO: return and handle error
-            }
+        if header.seal_type().clone() == Some(SealType::Pow) {
+            cheap_validators.push(Box::new(POWValidator {}));
         }
 
         for v in cheap_validators.iter() {
@@ -372,6 +352,14 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     }
 
     fn verify_block_unordered(&self, header: &Header) -> Result<(), Error> {
+        if header
+            .seal_type()
+            .clone()
+            .expect("sealed block should have seal type")
+            == SealType::Pos
+        {
+            return Ok(());
+        }
         let mut costly_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(1);
         costly_validators.push(Box::new(EquihashSolutionValidator {
             solution_validator: EquihashValidator::new(210, 9),
@@ -402,6 +390,9 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         grand_validators.push(Box::new(DifficultyValidator {
             difficulty_calc: &self.difficulty_calc,
         }));
+        if header.seal_type().clone() == Some(SealType::Pos) {
+            grand_validators.push(Box::new(POSValidator {}));
+        }
         for v in grand_validators.iter() {
             v.validate(header, parent, grand_parent)?;
         }

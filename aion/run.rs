@@ -276,9 +276,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
                 let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
                 let produce_time = staker.calc_produce_time(&*client);
 
-                if since_epoch.as_secs() * 1000 + since_epoch.subsec_nanos() as u64 / 1_000_000
-                    >= produce_time
-                {
+                if since_epoch.as_secs() >= produce_time {
                     info!(target: "run", "generating a PoS block");
                     staker.produce_block(&miner, &*client).ok();
                 }
