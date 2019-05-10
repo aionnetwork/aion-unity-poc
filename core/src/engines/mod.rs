@@ -309,6 +309,17 @@ pub trait Engine<M: Machine>: Sync + Send {
     {
     }
 
+    /// Calculate difficulty
+    fn calculate_difficulty(
+        &self,
+        _seal_type: &SealType,
+        _parent: Option<&Header>,
+        _grand_parent: Option<&Header>,
+    ) -> U256
+    {
+        U256::from(0)
+    }
+
     /// Handle any potential consensus messages;
     /// updating consensus state and potentially issuing a new one.
     fn handle_message(&self, _message: &[u8]) -> Result<(), EngineError> {

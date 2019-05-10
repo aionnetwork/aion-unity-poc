@@ -629,6 +629,10 @@ impl BlockChainClient for TestBlockChainClient {
         unimplemented!();
     }
 
+    fn latest_pos_difficulty(&self, _parent_header: &encoded::Header) -> U256 {
+        unimplemented!();
+    }
+
     fn block_header(&self, id: BlockId) -> Option<encoded::Header> {
         self.block_hash(id)
             .and_then(|hash| {

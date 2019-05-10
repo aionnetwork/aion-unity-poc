@@ -212,6 +212,9 @@ pub trait BlockChainClient: Sync + Send {
         seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
+    /// Get the latest pos difficulty
+    fn latest_pos_difficulty(&self, parent_header: &encoded::Header) -> U256;
+
     /// Returns logs matching given filter.
     fn logs(&self, filter: Filter) -> Vec<LocalizedLogEntry>;
 

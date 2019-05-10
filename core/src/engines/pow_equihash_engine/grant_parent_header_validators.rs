@@ -65,11 +65,9 @@ impl<'a> GrantParentHeaderValidator for DifficultyValidator<'a> {
                 header.number()
             );
         } else {
-            let calc_difficulty = self.difficulty_calc.calculate_difficulty_pow(
-                header,
-                Some(parent_header),
-                grant_parent_header,
-            );
+            let calc_difficulty = self
+                .difficulty_calc
+                .calculate_difficulty_pow(Some(parent_header), grant_parent_header);
             if difficulty != calc_difficulty {
                 Err(BlockError::InvalidDifficulty(Mismatch {
                     expected: calc_difficulty,

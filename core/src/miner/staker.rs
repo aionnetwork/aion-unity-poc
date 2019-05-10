@@ -106,7 +106,8 @@ impl Staker {
             Some(header) => {
                 let seal = header.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                (header.difficulty(), header.timestamp(), seed.clone())
+                let difficulty = client.latest_pos_difficulty(&header);
+                (difficulty, header.timestamp(), seed.clone())
             }
             None => (U256::from(1), 0u64, Vec::new()),
         };
