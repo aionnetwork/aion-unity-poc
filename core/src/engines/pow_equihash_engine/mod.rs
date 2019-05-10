@@ -45,11 +45,10 @@ use self::header_validators::{
 //    ExtraDataValidator,
     HeaderValidator,
     POWValidator,
-    POSValidator,
     EnergyConsumedValidator,
     EquihashSolutionValidator
 };
-use self::grant_parent_header_validators::{GrantParentHeaderValidator, DifficultyValidator};
+use self::grant_parent_header_validators::{GrantParentHeaderValidator, DifficultyValidator, POSValidator};
 
 #[derive(Debug, PartialEq)]
 pub struct POWEquihashEngineParams {
@@ -109,24 +108,23 @@ impl DifficultyCalc {
             minimum_difficulty: params.minimum_difficulty,
         }
     }
-    pub fn calculate_difficulty(
+
+    pub fn calculate_difficulty_pow(
         &self,
-        header: &Header,
-        parent: &Header,
-        grant_parent: Option<&Header>,
+        parent: Option<&Header>,
+        grand_parent: Option<&Header>,
     ) -> U256
     {
-        if header.number() == 0 {
-            panic!("Can't calculate genesis block difficulty.");
-        }
+        // TODO_unity_poc: modify this
+        let parent = parent.expect("Pow block must have a parent");
         if parent.number() == 0 {
             return parent.difficulty().clone();
         }
-        if header.number() != 2 && grant_parent.is_none() {
-            panic!("grant_parent must exist.");
+        let parent_difficulty = parent.difficulty().clone();
+        if grand_parent.is_none() {
+            return parent_difficulty;
         }
-
-        let parent_difficulty = *parent.difficulty();
+        let grand_parent = grand_parent.expect("Pos grand parent unwrap tested before");
 
         let mut diff_base = parent_difficulty / self.difficulty_bound_divisor;
 
@@ -136,7 +134,7 @@ impl DifficultyCalc {
         }
 
         let current_timestamp = parent.timestamp();
-        let parent_timestamp = grant_parent.unwrap().timestamp();
+        let parent_timestamp = grand_parent.timestamp();
 
         let delta = current_timestamp - parent_timestamp;
         let bound_domain = 10;
@@ -161,6 +159,39 @@ impl DifficultyCalc {
         }
         output_difficulty = cmp::max(output_difficulty, self.minimum_difficulty);
         output_difficulty
+    }
+
+    pub fn calculate_difficulty_pos(
+        &self,
+        parent: Option<&Header>,
+        grand_parent: Option<&Header>,
+    ) -> U256
+    {
+        // If not parent pos block, return the initial difficulty
+        if parent.is_none() {
+            return U256::from(1);
+        }
+        let parent = parent.expect("Pos parent unwrap tested before");
+        let parent_difficulty = parent.difficulty().clone();
+        // If no grand parent, return the difficulty of parent
+        if grand_parent.is_none() {
+            return parent_difficulty;
+        }
+        let grand_parent = grand_parent.expect("Pos grand parent unwrap tested before");
+        let parent_timestamp = parent.timestamp();
+        let grand_parent_timestamp = grand_parent.timestamp();
+        let delta_time = parent_timestamp - grand_parent_timestamp;
+        assert!(delta_time > 0);
+
+        let a = 1 / 128;
+        let target_block_time = 10f64;
+        let lambda: f64 = 1f64 / (2f64 * target_block_time);
+        let x = -0.5f64.ln() / lambda;
+        match delta_time as f64 - x {
+            res if res > 0f64 => parent_difficulty / U256::from(1 + a),
+            res if res < 0f64 => parent_difficulty * U256::from(1 + a),
+            _ => parent_difficulty,
+        }
     }
 }
 
@@ -221,17 +252,6 @@ impl POWEquihashEngine {
         })
     }
 
-    fn calculate_difficulty(
-        &self,
-        header: &Header,
-        parent: &Header,
-        grant_parent: Option<&Header>,
-    ) -> U256
-    {
-        self.difficulty_calc
-            .calculate_difficulty(header, parent, grant_parent)
-    }
-
     fn calculate_reward(&self, header: &Header) -> U256 {
         self.rewards_calculator.calculate_reward(header)
     }
@@ -240,16 +260,8 @@ impl POWEquihashEngine {
         let mut block_header_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         block_header_validators.push(Box::new(VersionValidator {}));
         block_header_validators.push(Box::new(EnergyConsumedValidator {}));
-        match header.seal_type() {
-            Some(SealType::Pow) => {
-                block_header_validators.push(Box::new(POWValidator {}));
-            }
-            Some(SealType::Pos) => {
-                block_header_validators.push(Box::new(POSValidator {}));
-            }
-            None => {
-                // TODO: return and handle error
-            }
+        if header.seal_type().clone() == Some(SealType::Pow) {
+            block_header_validators.push(Box::new(POWValidator {}));
         }
 
         for v in block_header_validators.iter() {
@@ -274,12 +286,32 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     fn populate_from_parent(
         &self,
         header: &mut Header,
-        parent: &Header,
-        grant_parent: Option<&Header>,
+        seal_type: &SealType,
+        parent: Option<&Header>,
+        grand_parent: Option<&Header>,
     )
     {
-        let difficulty = self.calculate_difficulty(header, parent, grant_parent);
+        let difficulty = self.calculate_difficulty(seal_type, parent, grand_parent);
         header.set_difficulty(difficulty);
+    }
+
+    fn calculate_difficulty(
+        &self,
+        seal_type: &SealType,
+        parent: Option<&Header>,
+        grand_parent: Option<&Header>,
+    ) -> U256
+    {
+        match seal_type {
+            SealType::Pow => {
+                self.difficulty_calc
+                    .calculate_difficulty_pow(parent, grand_parent)
+            }
+            SealType::Pos => {
+                self.difficulty_calc
+                    .calculate_difficulty_pos(parent, grand_parent)
+            }
+        }
     }
 
     fn on_close_block(&self, block: &mut ExecutedBlock) -> Result<(), Error> {
@@ -308,16 +340,8 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         let mut cheap_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(4);
         cheap_validators.push(Box::new(VersionValidator {}));
         cheap_validators.push(Box::new(EnergyConsumedValidator {}));
-        match header.seal_type() {
-            Some(SealType::Pow) => {
-                cheap_validators.push(Box::new(POWValidator {}));
-            }
-            Some(SealType::Pos) => {
-                cheap_validators.push(Box::new(POSValidator {}));
-            }
-            None => {
-                // TODO: return and handle error
-            }
+        if header.seal_type().clone() == Some(SealType::Pow) {
+            cheap_validators.push(Box::new(POWValidator {}));
         }
 
         for v in cheap_validators.iter() {
@@ -328,6 +352,14 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     }
 
     fn verify_block_unordered(&self, header: &Header) -> Result<(), Error> {
+        if header
+            .seal_type()
+            .clone()
+            .expect("sealed block should have seal type")
+            == SealType::Pos
+        {
+            return Ok(());
+        }
         let mut costly_validators: Vec<Box<HeaderValidator>> = Vec::with_capacity(1);
         costly_validators.push(Box::new(EquihashSolutionValidator {
             solution_validator: EquihashValidator::new(210, 9),
@@ -342,7 +374,7 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         &self,
         header: &Header,
         parent: &Header,
-        grant_parent: Option<&Header>,
+        grand_parent: Option<&Header>,
     ) -> Result<(), Error>
     {
         // verify parent
@@ -353,13 +385,16 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
             v.validate(header, parent)?;
         }
 
-        // verify grant parent
-        let mut grant_validators: Vec<Box<GrantParentHeaderValidator>> = Vec::with_capacity(1);
-        grant_validators.push(Box::new(DifficultyValidator {
+        // verify grand parent
+        let mut grand_validators: Vec<Box<GrantParentHeaderValidator>> = Vec::with_capacity(1);
+        grand_validators.push(Box::new(DifficultyValidator {
             difficulty_calc: &self.difficulty_calc,
         }));
-        for v in grant_validators.iter() {
-            v.validate(header, parent, grant_parent)?;
+        if header.seal_type().clone() == Some(SealType::Pos) {
+            grand_validators.push(Box::new(POSValidator {}));
+        }
+        for v in grand_validators.iter() {
+            v.validate(header, parent, grand_parent)?;
         }
 
         Ok(())
@@ -487,11 +522,11 @@ mod tests {
         parent_header.set_timestamp(1524538000u64);
         parent_header.set_difficulty(U256::from(1));
         parent_header.set_number(2);
-        let mut grant_parent_header = Header::default();
-        grant_parent_header.set_timestamp(1524528000u64);
-        grant_parent_header.set_number(1);
+        let mut grand_parent_header = Header::default();
+        grand_parent_header.set_timestamp(1524528000u64);
+        grand_parent_header.set_number(1);
         let difficulty =
-            calculator.calculate_difficulty(&header, &parent_header, Some(&grant_parent_header));
+            calculator.calculate_difficulty(&header, &parent_header, Some(&grand_parent_header));
         assert_eq!(difficulty, U256::from(16));
     }
     #[test]
@@ -515,11 +550,11 @@ mod tests {
         parent_header.set_timestamp(1524528005u64);
         parent_header.set_number(2);
         parent_header.set_difficulty(U256::from(2000));
-        let mut grant_parent_header = Header::default();
-        grant_parent_header.set_timestamp(1524528000u64);
-        grant_parent_header.set_number(1);
+        let mut grand_parent_header = Header::default();
+        grand_parent_header.set_timestamp(1524528000u64);
+        grand_parent_header.set_number(1);
         let difficulty =
-            calculator.calculate_difficulty(&header, &parent_header, Some(&grant_parent_header));
+            calculator.calculate_difficulty(&header, &parent_header, Some(&grand_parent_header));
         assert_eq!(difficulty, U256::from(2001));
     }
     #[test]
@@ -543,11 +578,11 @@ mod tests {
         parent_header.set_timestamp(1524528010u64);
         parent_header.set_difficulty(U256::from(3000));
         parent_header.set_number(2);
-        let mut grant_parent_header = Header::default();
-        grant_parent_header.set_timestamp(1524528000u64);
-        grant_parent_header.set_number(1);
+        let mut grand_parent_header = Header::default();
+        grand_parent_header.set_timestamp(1524528000u64);
+        grand_parent_header.set_number(1);
         let difficulty =
-            calculator.calculate_difficulty(&header, &parent_header, Some(&grant_parent_header));
+            calculator.calculate_difficulty(&header, &parent_header, Some(&grand_parent_header));
         assert_eq!(difficulty, U256::from(3000));
     }
     #[test]
@@ -571,11 +606,11 @@ mod tests {
         parent_header.set_timestamp(1524528020u64);
         parent_header.set_difficulty(U256::from(3000));
         parent_header.set_number(2);
-        let mut grant_parent_header = Header::default();
-        grant_parent_header.set_timestamp(1524528000u64);
-        grant_parent_header.set_number(1);
+        let mut grand_parent_header = Header::default();
+        grand_parent_header.set_timestamp(1524528000u64);
+        grand_parent_header.set_number(1);
         let difficulty =
-            calculator.calculate_difficulty(&header, &parent_header, Some(&grant_parent_header));
+            calculator.calculate_difficulty(&header, &parent_header, Some(&grand_parent_header));
         assert_eq!(difficulty, U256::from(2999));
     }
 

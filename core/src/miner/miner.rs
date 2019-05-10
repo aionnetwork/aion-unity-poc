@@ -49,7 +49,7 @@ use using_queue::{GetAction, UsingQueue};
 use block::{ClosedBlock, IsBlock, Block};
 use client::{MiningBlockChainClient, BlockId, TransactionId};
 use executive::contract_address;
-use header::{Header, BlockNumber};
+use header::{Header, BlockNumber, SealType};
 use io::IoChannel;
 use receipt::{Receipt, RichReceipt};
 use spec::Spec;
@@ -303,7 +303,12 @@ impl Miner {
     }
 
     /// Prepares new block for sealing including top transactions from queue.
-    pub fn prepare_block(&self, client: &MiningBlockChainClient) -> (ClosedBlock, Option<H256>) {
+    pub fn prepare_block(
+        &self,
+        client: &MiningBlockChainClient,
+        seal_type: Option<&SealType>,
+    ) -> (ClosedBlock, Option<H256>)
+    {
         trace_time!("prepare_block");
         let chain_info = client.chain_info();
         let (transactions, mut open_block, original_work_hash) = {
@@ -351,6 +356,7 @@ impl Miner {
                         self.author(),
                         (self.gas_floor_target(), self.gas_ceil_target()),
                         self.extra_data(),
+                        seal_type,
                     )
                 }
             };
@@ -647,7 +653,9 @@ impl Miner {
             // | NOTE Code below requires transaction_queue and sealing_work locks.     |
             // | Make sure to release the locks before calling that method.             |
             // --------------------------------------------------------------------------
-            let (block, original_work_hash) = self.prepare_block(client);
+            println!("CCC1");
+            let (block, original_work_hash) = self.prepare_block(client, None);
+            println!("CCC2");
             self.prepare_work(block, original_work_hash);
         }
         let mut sealing_block_last_request = self.sealing_block_last_request.lock();
@@ -1235,8 +1243,7 @@ impl MinerService for Miner {
             // | Make sure to release the locks before calling that method.             |
             // --------------------------------------------------------------------------
             trace!(target: "block", "update_sealing: preparing a block");
-            let (block, original_work_hash) = self.prepare_block(client);
-
+            let (block, original_work_hash) = self.prepare_block(client, None);
             match self.engine.seals_internally() {
                 Some(true) => {
                     trace!(target: "block", "update_sealing: engine indicates internal sealing");

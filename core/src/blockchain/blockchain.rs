@@ -121,14 +121,14 @@ pub trait BlockProvider {
     fn previous_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
     /// Get the previous(inclusive) block header with sepcified seal type
     fn latest_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
     /// Get the block body (uncles and transactions).
@@ -293,7 +293,7 @@ impl BlockProvider for BlockChain {
     fn previous_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         let parent_hash = match self.block_header_data(hash) {
@@ -301,13 +301,13 @@ impl BlockProvider for BlockChain {
             None => return None,
         };
         let mut parent_header = self.block_header_data(&parent_hash);
-        while parent_header.is_some() && parent_header.clone().unwrap().number() >= 1 {
+        while parent_header.is_some() {
             if parent_header
                 .clone()
                 .unwrap()
                 .seal_type()
                 .expect("sealed block does not have seal type")
-                == seal_type
+                == seal_type.clone()
             {
                 return parent_header;
             } else {
@@ -321,17 +321,17 @@ impl BlockProvider for BlockChain {
     fn latest_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         let mut header = self.block_header_data(&hash);
-        while header.is_some() && header.clone().unwrap().number() >= 1 {
+        while header.is_some() {
             if header
                 .clone()
                 .unwrap()
                 .seal_type()
                 .expect("sealed block does not have seal type")
-                == seal_type
+                == seal_type.clone()
             {
                 return header;
             } else {

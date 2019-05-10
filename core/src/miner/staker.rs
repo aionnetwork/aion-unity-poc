@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use tiny_keccak::Keccak;
 
-use aion_types::{Address, H128, U128, U256, U512};
+use aion_types::{Address, H128, U128, U512};
 use blake2b::blake2b;
 use block::IsBlock;
 use client::{BlockId, MiningBlockChainClient};
@@ -31,6 +31,7 @@ use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
 use header::SealType;
+use time::get_time;
 
 use super::Miner;
 
@@ -101,25 +102,26 @@ impl Staker {
             )
             .unwrap_or(H128::default());
 
-        let latest_pos_block_header = client.best_block_header_with_seal_type(SealType::Pos);
+        let latest_pos_block_header = client.best_block_header_with_seal_type(&SealType::Pos);
         let (diff, timestamp, seed) = match latest_pos_block_header {
             Some(header) => {
                 let seal = header.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                (header.difficulty(), header.timestamp(), seed.clone())
+                let difficulty = client.latest_pos_difficulty(&header);
+                (difficulty, header.timestamp(), seed.clone())
             }
-            None => (U256::from(1), 0u64, Vec::new()),
+            None => return get_time().sec as u64,
         };
-
         // \Delta = \frac{d_s \cdot ln({2^{256}}/{hash(seed)})}{V}.
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
         let two_to_256 = U512::from(1) << 32;
         let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
+        let _delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
             / (U128::from(stake).as_u64() as f64);
 
+        let delta = 10;
         timestamp + delta as u64
     }
 
@@ -131,13 +133,14 @@ impl Staker {
     ) -> Result<(), Error>
     {
         // 1. create a PoS block template
-        let (raw_block, _) = miner.prepare_block(client);
+        let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
+        let block_number = raw_block.header().number().clone();
 
         // 2. compute the seed and signature
         let latest_pos_block_header =
-            client.latest_block_header_with_seal_type(&parent_hash, SealType::Pos);
+            client.latest_block_header_with_seal_type(&parent_hash, &SealType::Pos);
         let latest_seed = match latest_pos_block_header {
             Some(header) => {
                 let seal = header.seal();
@@ -169,7 +172,7 @@ impl Staker {
         })?;
 
         // 5. done!
-        info!(target: "staker", "The PoS block was imported.");
+        info!(target: "staker", "The PoS block {:?} was imported.", &block_number);
         Ok(())
     }
 

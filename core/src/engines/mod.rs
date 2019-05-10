@@ -41,7 +41,7 @@ use self::epoch::PendingTransition;
 
 use precompiled::builtin::BuiltinContract;
 use error::Error;
-use header::{Header, BlockNumber};
+use header::{Header, BlockNumber, SealType};
 use spec::CommonParams;
 use transaction::{UnverifiedTransaction, SignedTransaction};
 
@@ -302,10 +302,22 @@ pub trait Engine<M: Machine>: Sync + Send {
     fn populate_from_parent(
         &self,
         _header: &mut M::Header,
-        _parent: &M::Header,
+        _seal_type: &SealType,
+        _parent: Option<&M::Header>,
         _grant_parent: Option<&M::Header>,
     )
     {
+    }
+
+    /// Calculate difficulty
+    fn calculate_difficulty(
+        &self,
+        _seal_type: &SealType,
+        _parent: Option<&Header>,
+        _grand_parent: Option<&Header>,
+    ) -> U256
+    {
+        U256::from(0)
     }
 
     /// Handle any potential consensus messages;

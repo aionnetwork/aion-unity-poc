@@ -359,8 +359,8 @@ impl Header {
     }
 
     /// Set the seal type field of the header
-    pub fn set_seal_type(&mut self, a: SealType) {
-        self.seal_type = Some(a);
+    pub fn set_seal_type(&mut self, a: Option<SealType>) {
+        self.seal_type = a;
         self.note_dirty();
     }
 

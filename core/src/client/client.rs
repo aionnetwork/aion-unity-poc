@@ -420,12 +420,35 @@ impl Client {
         let is_epoch_begin = chain
             .epoch_transition(parent.number(), parent_hash)
             .is_some();
+
+        let seal_parent_header = self.latest_block_header_with_seal_type(
+            &header.parent_hash(),
+            &header
+                .seal_type()
+                .clone()
+                .expect("Importing block must have a seal type"),
+        );
+        let seal_grand_parent_header = match &seal_parent_header {
+            Some(header) => {
+                self.previous_block_header_with_seal_type(
+                    &header.hash(),
+                    &header
+                        .seal_type()
+                        .expect("Existing block must have a seal type"),
+                )
+            }
+            None => None,
+        };
+
         let enact_result = enact_verified(
             block,
             engine,
             db,
             &parent,
-            grant_parent_header,
+            seal_parent_header.map(|header| header.decode()).as_ref(),
+            seal_grand_parent_header
+                .map(|header| header.decode())
+                .as_ref(),
             last_hashes,
             self.factories.clone(),
             is_epoch_begin,
@@ -1201,7 +1224,6 @@ impl Client {
             .block_hash(BlockId::Number(new_block))
             .expect("can not found block , db may crashed");
         batch.put(::db::COL_EXTRA, b"best", &new_best_hash);
-        // TODO_unity_poc: update also "best_pos" when revert blocks
         // reset state
         let latest_era_key = [b'l', b'a', b's', b't', 0, 0, 0, 0, 0, 0, 0, 0];
         batch.put(::db::COL_STATE, &latest_era_key, &encode(&new_block));
@@ -1371,7 +1393,7 @@ impl BlockChainClient for Client {
 
     fn best_block_header(&self) -> encoded::Header { self.chain.read().best_block_header() }
 
-    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> Option<encoded::Header> {
+    fn best_block_header_with_seal_type(&self, seal_type: &SealType) -> Option<encoded::Header> {
         let best_block_hash = self.chain.read().best_block_hash();
         self.chain
             .read()
@@ -1381,7 +1403,7 @@ impl BlockChainClient for Client {
     fn previous_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         self.chain
@@ -1392,12 +1414,23 @@ impl BlockChainClient for Client {
     fn latest_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         self.chain
             .read()
             .latest_block_header_with_seal_type(hash, seal_type)
+    }
+
+    fn latest_pos_difficulty(&self, parent_header: &encoded::Header) -> U256 {
+        let engine = &*self.engine;
+        let grand_parent_header =
+            self.previous_block_header_with_seal_type(&parent_header.hash(), &SealType::Pos);
+        engine.calculate_difficulty(
+            &SealType::Pos,
+            Some(parent_header.decode()).as_ref(),
+            grand_parent_header.map(|header| header.decode()).as_ref(),
+        )
     }
 
     fn block_header(&self, id: BlockId) -> Option<::encoded::Header> {
@@ -1851,6 +1884,7 @@ impl MiningBlockChainClient for Client {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
+        seal_type: Option<&SealType>,
     ) -> OpenBlock
     {
         let engine = &*self.engine;
@@ -1859,8 +1893,19 @@ impl MiningBlockChainClient for Client {
         let best_header = &chain
             .block_header(&h)
             .expect("h is best block hash: so its header must exist: qed");
-        let grant_parent = chain.block_header(best_header.parent_hash());
-        let grant_parent_header = grant_parent.as_ref();
+
+        let block_seal_type = match seal_type {
+            Some(seal_type) => seal_type.clone(),
+            _ => SealType::Pow,
+        };
+
+        let seal_parent_header = self.best_block_header_with_seal_type(&block_seal_type);
+        let seal_grand_parent_header = match &seal_parent_header {
+            Some(header) => {
+                self.previous_block_header_with_seal_type(&header.hash(), &block_seal_type)
+            }
+            None => None,
+        };
 
         let is_epoch_begin = chain.epoch_transition(best_header.number(), h).is_some();
         let open_block = OpenBlock::new(
@@ -1868,7 +1913,11 @@ impl MiningBlockChainClient for Client {
             self.factories.clone(),
             self.state_db.read().boxed_clone_canon(&h),
             best_header,
-            grant_parent_header,
+            seal_parent_header.map(|header| header.decode()).as_ref(),
+            seal_grand_parent_header
+                .map(|header| header.decode())
+                .as_ref(),
+            &block_seal_type,
             self.build_last_hashes(h.clone()),
             author,
             gas_range_target,

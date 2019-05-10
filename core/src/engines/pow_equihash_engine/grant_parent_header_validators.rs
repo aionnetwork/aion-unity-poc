@@ -23,6 +23,8 @@ use super::DifficultyCalc;
 use error::{Error,BlockError};
 use header::Header;
 use unexpected::{Mismatch};
+use key::{recover_ed25519, public_to_address_ed25519};
+use bytes::to_hex;
 
 pub trait GrantParentHeaderValidator {
     fn validate(
@@ -65,11 +67,9 @@ impl<'a> GrantParentHeaderValidator for DifficultyValidator<'a> {
                 header.number()
             );
         } else {
-            let calc_difficulty = self.difficulty_calc.calculate_difficulty(
-                header,
-                parent_header,
-                grant_parent_header,
-            );
+            let calc_difficulty = self
+                .difficulty_calc
+                .calculate_difficulty_pow(Some(parent_header), grant_parent_header);
             if difficulty != calc_difficulty {
                 Err(BlockError::InvalidDifficulty(Mismatch {
                     expected: calc_difficulty,
@@ -80,5 +80,42 @@ impl<'a> GrantParentHeaderValidator for DifficultyValidator<'a> {
                 Ok(())
             }
         }
+    }
+}
+
+pub struct POSValidator;
+
+impl GrantParentHeaderValidator for POSValidator {
+    fn validate(
+        &self,
+        header: &Header,
+        parent_header: &Header,
+        _grant_parent_header: Option<&Header>,
+    ) -> Result<(), Error>
+    {
+        let seal = header.seal();
+        if seal.len() != 2 {
+            error!(target: "pos", "seal length != 2");
+            return Err(BlockError::InvalidSealArity(Mismatch {
+                expected: 2,
+                found: seal.len(),
+            })
+            .into());
+        }
+
+        let seed = &seal[0];
+        debug!(target: "pos", "seed: {}", to_hex(seed.as_slice()));
+        let signature = &seal[1];
+        debug!(target: "pos", "signature: {}", to_hex(signature.as_slice()));
+
+        let parent_seed = parent_header
+            .seal()
+            .get(0)
+            .expect("parent pos block should have a seed");
+
+        let public = recover_ed25519(&seed.clone().into(), &parent_seed.as_slice().into())?;
+        let _sender = public_to_address_ed25519(&public);
+
+        Ok(())
     }
 }

@@ -38,7 +38,7 @@ use vms::{EnvInfo, LastHashes};
 use engines::EthEngine;
 use error::{Error, BlockError};
 use factory::Factories;
-use header::{Header, Seal};
+use header::{Header, Seal, SealType};
 use receipt::Receipt;
 use state::State;
 use state_db::StateDB;
@@ -225,7 +225,9 @@ impl<'x> OpenBlock<'x> {
         factories: Factories,
         db: StateDB,
         parent: &Header,
-        grant_parent: Option<&Header>,
+        seal_parent: Option<&Header>,
+        seal_grand_parent: Option<&Header>,
+        seal_type: &SealType,
         last_hashes: Arc<LastHashes>,
         author: Address,
         gas_range_target: (U256, U256),
@@ -252,6 +254,7 @@ impl<'x> OpenBlock<'x> {
         r.block.header.set_number(number);
         r.block.header.set_author(author);
         r.block.header.set_timestamp_now(parent.timestamp());
+        r.block.header.set_seal_type(Some(seal_type.clone()));
         r.set_extra_data(extra_data);
         r.block.header.note_dirty();
 
@@ -265,7 +268,12 @@ impl<'x> OpenBlock<'x> {
             gas_ceil_target,
         );
         // set difficulty
-        engine.populate_from_parent(&mut r.block.header, parent, grant_parent);
+        engine.populate_from_parent(
+            &mut r.block.header,
+            &seal_type,
+            seal_parent,
+            seal_grand_parent,
+        );
 
         engine.machine().on_new_block(&mut r.block)?;
         engine.on_new_block(&mut r.block, is_epoch_begin)?;
@@ -564,7 +572,8 @@ pub fn enact(
     engine: &EthEngine,
     db: StateDB,
     parent: &Header,
-    grant_parent: Option<&Header>,
+    seal_parent: Option<&Header>,
+    seal_grand_parent: Option<&Header>,
     last_hashes: Arc<LastHashes>,
     factories: Factories,
     is_epoch_begin: bool,
@@ -587,13 +596,17 @@ pub fn enact(
     // let s = State::from_existing(db.boxed_clone(), parent.state_root().clone(), engine.account_start_nonce(parent.number() + 1), factories.clone())?;
     // error!(target: "enact", "num={}, root={}, author={}, author_balance={}\n",
     //     header.number(), s.root(), header.author(), s.balance(&header.author())?);
-
     let mut b = OpenBlock::new(
         engine,
         factories,
         db,
         parent,
-        grant_parent,
+        seal_parent,
+        seal_grand_parent,
+        &header
+            .seal_type()
+            .clone()
+            .expect("Importing block must have a seal type."),
         last_hashes,
         Address::new(),
         (3141562.into(), 31415620.into()),
@@ -658,7 +671,8 @@ pub fn enact_verified(
     engine: &EthEngine,
     db: StateDB,
     parent: &Header,
-    grant_parent: Option<&Header>,
+    seal_parent: Option<&Header>,
+    seal_grand_parent: Option<&Header>,
     last_hashes: Arc<LastHashes>,
     factories: Factories,
     is_epoch_begin: bool,
@@ -671,7 +685,8 @@ pub fn enact_verified(
         engine,
         db,
         parent,
-        grant_parent,
+        seal_parent,
+        seal_grand_parent,
         last_hashes,
         factories,
         is_epoch_begin,
