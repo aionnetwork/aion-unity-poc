@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 use std::sync::Arc;
+use std::cmp::min;
 
 use tiny_keccak::Keccak;
 
@@ -33,6 +34,7 @@ use spec::Spec;
 use header::SealType;
 
 use super::Miner;
+use ansi_term::Colour;
 
 /*
 ===========================
@@ -100,7 +102,9 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
-        let stake = U128::from(stake).as_u64();
+        let mut stake = U128::from(stake).as_u64();
+        // TODO: remove the following line
+        stake = 16u64;
         if stake == 0 {
             return 0xffffffffffffffffu64;
         }
@@ -127,13 +131,13 @@ impl Staker {
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
-        let two_to_256 = U512::from(1) << 32;
-        let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let _delta = (difficulty.as_u64() as f64) * (division.as_u64() as f64).ln()
+        let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
+        let delta = (difficulty.as_u64() as f64)
+            * (u.as_u64() as f64).ln()
             / (stake as f64);
+        trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
 
-        let delta = 10;
-        timestamp + delta as u64
+        timestamp + min(1u64, delta as u64)
     }
 
     /// Produce a PoS block
@@ -147,7 +151,6 @@ impl Staker {
         let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
-        let block_number = raw_block.header().number().clone();
 
         // 2. compute the seed and signature
         let latest_pos_block_header =
@@ -180,15 +183,16 @@ impl Staker {
         let n = sealed_block.header().number();
         let d = sealed_block.header().difficulty().clone();
         let h = sealed_block.header().hash();
-        info!(target: "miner", "Importing pos block. #{}: {}, {:x}", n, d, h);
-
         client.import_sealed_block(sealed_block).or_else(|e| {
             warn!(target: "staker", "Failed to import: {}", e);
             Err(Error::FailedToImport)
         })?;
 
         // 5. done!
-        info!(target: "staker", "The PoS block {:?} was imported.", &block_number);
+        info!(target: "miner", "PoS block imported OK. #{}: {}, {}",
+              Colour::White.bold().paint(format!("{}", n)),
+              Colour::White.bold().paint(format!("{}", d)),
+              Colour::White.bold().paint(format!("{:x}", h)));
         Ok(())
     }
 
