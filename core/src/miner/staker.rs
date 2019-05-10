@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 use std::sync::Arc;
+use std::cmp::min;
 
 use tiny_keccak::Keccak;
 
@@ -100,7 +101,9 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
-        let stake = U128::from(stake).as_u64();
+        let mut stake = U128::from(stake).as_u64();
+        // TODO: remove the following line
+        stake = 100u64;
         if stake == 0 {
             return 0xffffffffffffffffu64;
         }
@@ -127,13 +130,13 @@ impl Staker {
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
-        let two_to_256 = U512::from(1) << 32;
-        let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let _delta = (difficulty.as_u64() as f64) * (division.as_u64() as f64).ln()
+        let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
+        let delta = (difficulty.as_u64() as f64)
+            * (u.as_u64() as f64).ln()
             / (stake as f64);
+        trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
 
-        let delta = 10;
-        timestamp + delta as u64
+        timestamp + min(1u64, delta as u64)
     }
 
     /// Produce a PoS block

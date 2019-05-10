@@ -252,9 +252,10 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
         move || {
             while !stop.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_millis(10000));
+
                 info!(target: "run", "update sealing");
                 client.update_sealing();
-                thread::sleep(Duration::from_millis(10000));
 
                 // TODO: refresh on best block change
             }
@@ -273,6 +274,8 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
         let client = client.clone();
 
         move || {
+            thread::sleep(Duration::from_millis(10000));
+
             while !stop.load(Ordering::SeqCst) {
                 let now = SystemTime::now();
                 let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
