@@ -220,17 +220,19 @@ impl ClientService {
                         .expect("db crashed")
                         .to_vec();
                     let parent_header = ::encoded::Header::new(parent_header_bytes).decode();
-                    let parnet_number = parent_header.number();
+                    let parent_number = parent_header.number();
                     batch.put(db::COL_EXTRA, b"best", &parent);
+                    // NOTE: the following code is problematic, fix in production.
                     let new_parent_block_detail = BlockDetails {
-                        number: parnet_number,
-                        total_difficulty: U256::from(*parent_header.difficulty()),
+                        number: parent_number,
+                        total_pow_difficulty: U256::from(*parent_header.difficulty()),
+                        total_pos_difficulty: U256::from(*parent_header.difficulty()),
                         parent: H256::from(*parent_header.parent_hash()),
                         children: vec![],
                     };
                     // reset state db
                     let latest_era_key = [b'l', b'a', b's', b't', 0, 0, 0, 0, 0, 0, 0, 0];
-                    batch.put(db::COL_STATE, &latest_era_key, &encode(&parnet_number));
+                    batch.put(db::COL_STATE, &latest_era_key, &encode(&parent_number));
                     use db::Writable;
                     batch.write(db::COL_EXTRA, &parent, &new_parent_block_detail);
                     let _ = dbs.write(batch);

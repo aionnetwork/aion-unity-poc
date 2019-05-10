@@ -663,7 +663,7 @@ impl Client {
 
             // Commit results
             let mut batch = DBTransaction::new();
-            chain.insert_unordered_block(&mut batch, &block_bytes, receipts, None, false, true);
+            chain.insert_unordered_block(&mut batch, &block_bytes, receipts, None, None, false, true);
             // Final commit to the DB
             self.db.read().write_buffered(batch);
             chain.commit();
@@ -1509,7 +1509,7 @@ impl BlockChainClient for Client {
 
         Self::block_hash(&chain, &self.miner, id)
             .and_then(|hash| chain.block_details(&hash))
-            .map(|d| d.total_difficulty)
+            .map(|d| d.total_pos_difficulty * d.total_pow_difficulty)
     }
 
     fn nonce(&self, address: &Address, id: BlockId) -> Option<U256> {

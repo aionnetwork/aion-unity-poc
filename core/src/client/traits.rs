@@ -68,7 +68,7 @@ pub trait BlockChainClient: Sync + Send {
     /// Get block status by block header hash.
     fn block_status(&self, id: BlockId) -> BlockStatus;
 
-    /// Get block total difficulty.
+    /// Get block total difficulty. (total mining diff * total staking diff)
     fn block_total_difficulty(&self, id: BlockId) -> Option<U256>;
 
     /// Attempt to get address nonce at given block.

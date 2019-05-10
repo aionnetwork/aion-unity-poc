@@ -678,7 +678,8 @@ impl BlockChain {
 
                 let details = BlockDetails {
                     number: header.number(),
-                    total_difficulty: header.difficulty(),
+                    total_pow_difficulty: header.difficulty(),
+                    total_pos_difficulty: U256::from(1),
                     parent: header.parent_hash(),
                     children: vec![],
                 };
@@ -704,10 +705,14 @@ impl BlockChain {
             let best_block_number = bc
                 .block_number(&best_block_hash)
                 .expect("best block not found, db may crashed");
-            let best_block_total_difficulty = bc
+            let best_block_total_pow_difficulty = bc
                 .block_details(&best_block_hash)
                 .expect("best block not found, db may crashed")
-                .total_difficulty;
+                .total_pow_difficulty;
+            let best_block_total_pos_difficulty = bc
+                .block_details(&best_block_hash)
+                .expect("best block not found, db may crashed")
+                .total_pos_difficulty;
             let best_block_rlp = bc
                 .block(&best_block_hash)
                 .expect("best block not found, db may crashed")
@@ -770,9 +775,11 @@ impl BlockChain {
 
             // and write them
             let mut best_block = bc.best_block.write();
+
             *best_block = BestBlock {
                 number: best_block_number,
-                total_difficulty: best_block_total_difficulty,
+                total_pow_difficulty: best_block_total_pow_difficulty,
+                total_pos_difficulty: best_block_total_pos_difficulty,
                 hash: best_block_hash,
                 timestamp: best_block_timestamp,
                 block: best_block_rlp,
@@ -902,7 +909,8 @@ impl BlockChain {
         batch: &mut DBTransaction,
         bytes: &[u8],
         receipts: Vec<Receipt>,
-        parent_td: Option<U256>,
+        parent_pow_td: Option<U256>,
+        parent_pos_td: Option<U256>,
         is_best: bool,
         is_ancient: bool,
     ) -> bool
@@ -928,10 +936,19 @@ impl BlockChain {
 
         if let Some(parent_details) = maybe_parent {
             // parent known to be in chain.
+            let mut tdw = parent_details.total_pow_difficulty;
+            let mut tds = parent_details.total_pos_difficulty;
+            if header.seal_type() == Some(SealType::Pos) {
+                tds = tds + header.difficulty();
+            } else {
+                tdw = tdw + header.difficulty();
+            };
+
             let info = BlockInfo {
                 hash: hash,
                 number: header.number(),
-                total_difficulty: parent_details.total_difficulty + header.difficulty(),
+                total_pow_difficulty: tdw,
+                total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
             };
 
@@ -968,21 +985,33 @@ impl BlockChain {
             false
         } else {
             // parent not in the chain yet. we need the parent difficulty to proceed.
-            let d = parent_td.expect(
-                "parent total difficulty always supplied for first block in chunk. only first \
+            let mut tdw = parent_pow_td.expect(
+                "parent total PoW difficulty always supplied for first block in chunk. only first \
                  block can have missing parent; qed",
             );
+            let mut tds = parent_pos_td.expect(
+                "parent total PoS difficulty always supplied for first block in chunk. only first \
+                 block can have missing parent; qed",
+            );
+            if header.seal_type() == Some(SealType::Pos) {
+                tds = tds + header.difficulty();
+            } else {
+                tdw = tdw + header.difficulty();
+            };
+
 
             let info = BlockInfo {
                 hash: hash,
                 number: header.number(),
-                total_difficulty: d + header.difficulty(),
+                total_pow_difficulty: tdw,
+                total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
             };
 
             let block_details = BlockDetails {
                 number: header.number(),
-                total_difficulty: info.total_difficulty,
+                total_pow_difficulty: tdw,
+                total_pos_difficulty: tds,
                 parent: header.parent_hash(),
                 children: Vec::new(),
             };
@@ -1209,13 +1238,24 @@ impl BlockChain {
         let parent_details = self
             .block_details(&parent_hash)
             .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
-        let is_new_best = parent_details.total_difficulty + header.difficulty()
-            > self.best_block_total_difficulty();
+
+
+        let mut tdw = parent_details.total_pow_difficulty;
+        let mut tds = parent_details.total_pos_difficulty;
+        if header.seal_type() == Some(SealType::Pos) {
+            tds = tds + header.difficulty();
+        } else {
+            tdw = tdw + header.difficulty();
+        };
+
+
+        let is_new_best = tdw * tds > self.best_block_total_difficulty();
 
         BlockInfo {
             hash: hash,
             number: number,
-            total_difficulty: parent_details.total_difficulty + header.difficulty(),
+            total_pow_difficulty: tdw,
+            total_pos_difficulty: tds,
             location: if is_new_best {
                 // on new best block we need to make sure that all ancestors
                 // are moved to "canon chain"
@@ -1308,7 +1348,8 @@ impl BlockChain {
                 *best_block = Some(BestBlock {
                     hash: update.info.hash,
                     number: update.info.number,
-                    total_difficulty: update.info.total_difficulty,
+                    total_pow_difficulty: update.info.total_pow_difficulty,
+                    total_pos_difficulty: update.info.total_pos_difficulty,
                     timestamp: update.timestamp,
                     block: update.block.to_vec(),
                 });
@@ -1452,10 +1493,20 @@ impl BlockChain {
             .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
         parent_details.children.push(info.hash);
 
+
+        let mut tdw = parent_details.total_pow_difficulty;
+        let mut tds = parent_details.total_pos_difficulty;
+        if header.seal_type() == Some(SealType::Pos) {
+            tds = tds + header.difficulty();
+        } else {
+            tdw = tdw + header.difficulty();
+        };
+
         // create current block details.
         let details = BlockDetails {
             number: header.number(),
-            total_difficulty: info.total_difficulty,
+            total_pow_difficulty: tdw,
+            total_pos_difficulty: tds,
             parent: parent_hash,
             children: vec![],
         };
@@ -1637,7 +1688,9 @@ impl BlockChain {
     pub fn best_block_timestamp(&self) -> u64 { self.best_block.read().timestamp }
 
     /// Get best block total difficulty.
-    pub fn best_block_total_difficulty(&self) -> U256 { self.best_block.read().total_difficulty }
+    pub fn best_block_total_difficulty(&self) -> U256 {
+        self.best_block.read().total_pow_difficulty * self.best_block.read().total_pos_difficulty
+    }
 
     /// Get best block header
     pub fn best_block_header(&self) -> encoded::Header {
@@ -1734,8 +1787,8 @@ impl BlockChain {
         let best_block = self.best_block.read();
         let best_ancient_block = self.best_ancient_block.read();
         BlockChainInfo {
-            total_difficulty: best_block.total_difficulty.clone(),
-            pending_total_difficulty: best_block.total_difficulty.clone(),
+            total_difficulty: best_block.total_pow_difficulty.clone() * best_block.total_pos_difficulty.clone(),
+            pending_total_difficulty: best_block.total_pow_difficulty.clone() * best_block.total_pos_difficulty.clone(),
             genesis_hash: self.genesis_hash(),
             best_block_hash: best_block.hash,
             best_block_number: best_block.number,
