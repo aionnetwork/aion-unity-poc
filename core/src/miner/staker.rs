@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use tiny_keccak::Keccak;
 
-use aion_types::{Address, H128, U128, U256, U512};
+use aion_types::{Address, H128, U128, U512};
 use blake2b::blake2b;
 use block::IsBlock;
 use client::{BlockId, MiningBlockChainClient};
@@ -105,19 +105,23 @@ impl Staker {
             return 0xffffffffffffffffu64;
         }
 
+        // timestamp and previous seed
         let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
-        let (diff, timestamp, seed) = match parent_header.clone() {
+        let (timestamp, seed) = match parent_header.clone() {
             Some(parent) => {
                 let seal = parent.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-
-                let grand_parent_header = client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos);
-                let difficulty = client.calculate_difficulty(&parent_header, &grand_parent_header);
-
-                (difficulty, parent.timestamp(), seed.clone())
+                (parent.timestamp(), seed.clone())
             },
-            None => (U256::from(1), 0u64, Vec::new()),
+            None => (0u64, Vec::new()),
         };
+
+        // difficulty
+        let grand_parent_header =  match parent_header.clone() {
+            Some(parent) => client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos),
+            None => None,
+        };
+        let difficulty = client.calculate_difficulty(&parent_header, &grand_parent_header);
 
         // \Delta = \frac{d_s \cdot ln({2^{256}}/{hash(seed)})}{V}.
         // NOTE: never use floating point in production
@@ -125,7 +129,7 @@ impl Staker {
         let hash_of_seed = blake2b(&new_seed[..]);
         let two_to_256 = U512::from(1) << 32;
         let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let _delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
+        let _delta = (difficulty.as_u64() as f64) * (division.as_u64() as f64).ln()
             / (stake as f64);
 
         let delta = 10;

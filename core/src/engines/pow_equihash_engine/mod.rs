@@ -168,7 +168,7 @@ impl DifficultyCalc {
     {
         // If not parent pos block, return the initial difficulty
         if parent.is_none() {
-            return U256::from(1);
+            return U256::from(16);
         }
         let parent = parent.expect("Pos parent unwrap tested before");
         let parent_difficulty = parent.difficulty().clone();
@@ -182,15 +182,16 @@ impl DifficultyCalc {
         let delta_time = parent_timestamp - grand_parent_timestamp;
         assert!(delta_time > 0);
 
-        let a = 1 / 128;
-        let target_block_time = 20f64;
-        let lambda: f64 = 1f64 / (2f64 * target_block_time);
-        let x = -0.5f64.ln() / lambda;
-        match delta_time as f64 - x {
-            res if res > 0f64 => parent_difficulty / U256::from(1 + a),
-            res if res < 0f64 => parent_difficulty * U256::from(1 + a),
-            _ => parent_difficulty,
-        }
+        // NOTE: the computation below is in f64 (never use it in production)
+        let alpha = 0.1f64;  // due to accuracy loss, alpha * min >= 1
+        let lambda = 1f64 / (2f64 *  10f64);
+        let diff = match (delta_time as f64) - (-0.5f64.ln() / lambda) {
+            res if res > 0f64 => parent_difficulty.as_u64() as f64 / (1f64 + alpha),
+            res if res < 0f64 => parent_difficulty.as_u64() as f64 * (1f64 + alpha),
+            _ => parent_difficulty.as_u64() as f64,
+        };
+
+        U256::from(cmp::max(16u64, diff as u64))
     }
 }
 
