@@ -176,8 +176,10 @@ impl Key<EpochTransitions> for u64 {
 pub struct BlockDetails {
     /// Block number
     pub number: BlockNumber,
-    /// Total difficulty of the block and all its parents
-    pub total_difficulty: U256,
+    /// Total mining difficulty of the block and all its parents
+    pub total_pow_difficulty: U256,
+    /// Total staking difficulty of the block and all its parents
+    pub total_pos_difficulty: U256,
     /// Parent block hash
     pub parent: H256,
     /// List of children block hashes

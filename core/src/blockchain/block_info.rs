@@ -30,8 +30,10 @@ pub struct BlockInfo {
     pub hash: H256,
     /// Block number.
     pub number: BlockNumber,
-    /// Total block difficulty.
-    pub total_difficulty: U256,
+    /// Total mining difficulty.
+    pub total_pow_difficulty: U256,
+    /// Total staking difficulty.
+    pub total_pos_difficulty: U256,
     /// Block location in blockchain.
     pub location: BlockLocation,
 }
