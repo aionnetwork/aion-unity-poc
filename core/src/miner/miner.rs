@@ -1307,7 +1307,7 @@ impl MinerService for Miner {
             let d = sealed.header().difficulty().clone();
             let h = sealed.header().hash();
             client.import_sealed_block(sealed)?;
-            info!(target: "miner", "Submitted block imported OK. #{}: {}, {}",
+            info!(target: "miner", "PoW block imported OK. #{}: {}, {}",
                 Colour::White.bold().paint(format!("{}", n)),
                 Colour::White.bold().paint(format!("{}", d)),
                 Colour::White.bold().paint(format!("{:x}", h)));

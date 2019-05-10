@@ -34,6 +34,7 @@ use spec::Spec;
 use header::SealType;
 
 use super::Miner;
+use ansi_term::Colour;
 
 /*
 ===========================
@@ -103,7 +104,7 @@ impl Staker {
             .unwrap_or(H128::default());
         let mut stake = U128::from(stake).as_u64();
         // TODO: remove the following line
-        stake = 100u64;
+        stake = 16u64;
         if stake == 0 {
             return 0xffffffffffffffffu64;
         }
@@ -150,7 +151,6 @@ impl Staker {
         let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
-        let block_number = raw_block.header().number().clone();
 
         // 2. compute the seed and signature
         let latest_pos_block_header =
@@ -183,15 +183,16 @@ impl Staker {
         let n = sealed_block.header().number();
         let d = sealed_block.header().difficulty().clone();
         let h = sealed_block.header().hash();
-        info!(target: "miner", "Importing pos block. #{}: {}, {:x}", n, d, h);
-
         client.import_sealed_block(sealed_block).or_else(|e| {
             warn!(target: "staker", "Failed to import: {}", e);
             Err(Error::FailedToImport)
         })?;
 
         // 5. done!
-        info!(target: "staker", "The PoS block {:?} was imported.", &block_number);
+        info!(target: "miner", "PoS block imported OK. #{}: {}, {}",
+              Colour::White.bold().paint(format!("{}", n)),
+              Colour::White.bold().paint(format!("{}", d)),
+              Colour::White.bold().paint(format!("{:x}", h)));
         Ok(())
     }
 

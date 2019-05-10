@@ -252,9 +252,9 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
         move || {
             while !stop.load(Ordering::SeqCst) {
-                thread::sleep(Duration::from_millis(10000));
+                thread::sleep(Duration::from_millis(5000));
 
-                info!(target: "run", "update sealing");
+                trace!(target: "run", "update sealing");
                 client.update_sealing();
 
                 // TODO: refresh on best block change
@@ -282,7 +282,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
                 let produce_time = staker.calc_produce_time(&*client);
 
                 if since_epoch.as_secs() >= produce_time {
-                    info!(target: "run", "generating a PoS block");
+                    trace!(target: "run", "generating a PoS block");
                     staker.produce_block(&miner, &*client).ok();
                 }
 
