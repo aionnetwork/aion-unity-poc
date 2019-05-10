@@ -109,13 +109,12 @@ impl DifficultyCalc {
         }
     }
 
-    pub fn calculate_difficulty_pow(
+    pub fn calculate_difficulty_v0(
         &self,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     ) -> U256
     {
-        // TODO_unity_poc: modify this
         let parent = parent.expect("Pow block must have a parent");
         if parent.number() == 0 {
             return parent.difficulty().clone();
@@ -161,7 +160,7 @@ impl DifficultyCalc {
         output_difficulty
     }
 
-    pub fn calculate_difficulty_pos(
+    pub fn calculate_difficulty_v1(
         &self,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
@@ -291,25 +290,28 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         grand_parent: Option<&Header>,
     )
     {
-        let difficulty = self.calculate_difficulty(seal_type, parent, grand_parent);
+        let difficulty = self.calculate_difficulty(1u8, parent, grand_parent);
         header.set_difficulty(difficulty);
     }
 
     fn calculate_difficulty(
         &self,
-        seal_type: &SealType,
+        version: u8,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     ) -> U256
     {
-        match seal_type {
-            SealType::Pow => {
+        match version {
+            0u8 => {
                 self.difficulty_calc
-                    .calculate_difficulty_pow(parent, grand_parent)
+                    .calculate_difficulty_v0(parent, grand_parent)
             }
-            SealType::Pos => {
+            1u8 => {
                 self.difficulty_calc
-                    .calculate_difficulty_pos(parent, grand_parent)
+                    .calculate_difficulty_v1(parent, grand_parent)
+            }
+            _ => {
+                unimplemented!()
             }
         }
     }

@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use tiny_keccak::Keccak;
 
-use aion_types::{Address, H128, U128, U512};
+use aion_types::{Address, H128, U128, U256, U512};
 use blake2b::blake2b;
 use block::IsBlock;
 use client::{BlockId, MiningBlockChainClient};
@@ -31,7 +31,6 @@ use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
 use header::SealType;
-use time::get_time;
 
 use super::Miner;
 
@@ -102,16 +101,20 @@ impl Staker {
             )
             .unwrap_or(H128::default());
 
-        let latest_pos_block_header = client.best_block_header_with_seal_type(&SealType::Pos);
-        let (diff, timestamp, seed) = match latest_pos_block_header {
-            Some(header) => {
-                let seal = header.seal();
+        let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
+        let (diff, timestamp, seed) = match parent_header.clone() {
+            Some(parent) => {
+                let seal = parent.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                let difficulty = client.latest_pos_difficulty(&header);
-                (difficulty, header.timestamp(), seed.clone())
-            }
-            None => return get_time().sec as u64,
+
+                let grand_parent_header = client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos);
+                let difficulty = client.calculate_difficulty(&parent_header, &grand_parent_header);
+
+                (difficulty, parent.timestamp(), seed.clone())
+            },
+            None => (U256::from(1), 0u64, Vec::new()),
         };
+
         // \Delta = \frac{d_s \cdot ln({2^{256}}/{hash(seed)})}{V}.
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);

@@ -312,7 +312,7 @@ pub trait Engine<M: Machine>: Sync + Send {
     /// Calculate difficulty
     fn calculate_difficulty(
         &self,
-        _seal_type: &SealType,
+        _version: u8,
         _parent: Option<&Header>,
         _grand_parent: Option<&Header>,
     ) -> U256

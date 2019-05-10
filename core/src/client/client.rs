@@ -1422,14 +1422,12 @@ impl BlockChainClient for Client {
             .latest_block_header_with_seal_type(hash, seal_type)
     }
 
-    fn latest_pos_difficulty(&self, parent_header: &encoded::Header) -> U256 {
+    fn calculate_difficulty(&self, parent_header: &Option<encoded::Header>, grand_parent_header: &Option<encoded::Header>) -> U256 {
         let engine = &*self.engine;
-        let grand_parent_header =
-            self.previous_block_header_with_seal_type(&parent_header.hash(), &SealType::Pos);
         engine.calculate_difficulty(
-            &SealType::Pos,
-            Some(parent_header.decode()).as_ref(),
-            grand_parent_header.map(|header| header.decode()).as_ref(),
+            1u8,
+            parent_header.clone().map(|header| header.decode()).as_ref(),
+            grand_parent_header.clone().map(|header| header.decode()).as_ref(),
         )
     }
 
