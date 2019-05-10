@@ -20,7 +20,7 @@
  ******************************************************************************/
 
 use std::sync::Arc;
-use std::cmp::min;
+use std::cmp::max;
 
 use tiny_keccak::Keccak;
 
@@ -137,7 +137,7 @@ impl Staker {
             / (stake as f64);
         trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
 
-        timestamp + min(1u64, delta as u64)
+        timestamp + max(1u64, delta as u64)
     }
 
     /// Produce a PoS block

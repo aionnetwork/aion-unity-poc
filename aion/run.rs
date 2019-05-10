@@ -274,7 +274,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
         let client = client.clone();
 
         move || {
-            thread::sleep(Duration::from_millis(10000));
+            thread::sleep(Duration::from_millis(5000));
 
             while !stop.load(Ordering::SeqCst) {
                 let now = SystemTime::now();
