@@ -270,7 +270,6 @@ impl<'x> OpenBlock<'x> {
         // set difficulty
         engine.populate_from_parent(
             &mut r.block.header,
-            &seal_type,
             seal_parent,
             seal_grand_parent,
         );

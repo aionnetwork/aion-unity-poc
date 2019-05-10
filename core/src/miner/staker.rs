@@ -100,6 +100,10 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
+        let stake = U128::from(stake).as_u64();
+        if stake == 0 {
+            return 0xffffffffffffffffu64;
+        }
 
         let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
         let (diff, timestamp, seed) = match parent_header.clone() {
@@ -122,7 +126,7 @@ impl Staker {
         let two_to_256 = U512::from(1) << 32;
         let division = two_to_256 / U512::from(&hash_of_seed[..]);
         let _delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
-            / (U128::from(stake).as_u64() as f64);
+            / (stake as f64);
 
         let delta = 10;
         timestamp + delta as u64
@@ -169,6 +173,11 @@ impl Staker {
             })?;
 
         // 4. import the block
+        let n = sealed_block.header().number();
+        let d = sealed_block.header().difficulty().clone();
+        let h = sealed_block.header().hash();
+        info!(target: "miner", "Importing pos block. #{}: {}, {:x}", n, d, h);
+
         client.import_sealed_block(sealed_block).or_else(|e| {
             warn!(target: "staker", "Failed to import: {}", e);
             Err(Error::FailedToImport)

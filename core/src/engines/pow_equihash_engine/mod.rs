@@ -183,7 +183,7 @@ impl DifficultyCalc {
         assert!(delta_time > 0);
 
         let a = 1 / 128;
-        let target_block_time = 10f64;
+        let target_block_time = 20f64;
         let lambda: f64 = 1f64 / (2f64 * target_block_time);
         let x = -0.5f64.ln() / lambda;
         match delta_time as f64 - x {
@@ -285,7 +285,6 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     fn populate_from_parent(
         &self,
         header: &mut Header,
-        seal_type: &SealType,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     )
