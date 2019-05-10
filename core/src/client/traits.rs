@@ -196,20 +196,20 @@ pub trait BlockChainClient: Sync + Send {
     fn best_block_header(&self) -> encoded::Header;
 
     /// Get the best block header with specified seal type.
-    fn best_block_header_with_seal_type(&self, seal_type: SealType) -> Option<encoded::Header>;
+    fn best_block_header_with_seal_type(&self, seal_type: &SealType) -> Option<encoded::Header>;
 
     /// Get the previous block header of a given block with specified seal type.
     fn previous_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
     /// Get the previous(inclusive) block header of a given block with specified seal type.
     fn latest_block_header_with_seal_type(
         &self,
         hash: &H256,
-        seal_type: SealType,
+        seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
     /// Returns logs matching given filter.
@@ -325,6 +325,7 @@ pub trait MiningBlockChainClient: BlockChainClient {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
+        seal_type: Option<&SealType>,
     ) -> OpenBlock;
 
     /// Reopens an OpenBlock and updates uncles.

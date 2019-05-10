@@ -406,7 +406,7 @@ impl Spec {
         header.set_gas_used(self.gas_used.clone());
         header.set_gas_limit(self.gas_limit.clone());
         header.set_difficulty(self.difficulty.clone());
-        header.set_seal_type(SealType::Pow);
+        header.set_seal_type(Some(SealType::Pow));
         header.set_seal({
             let r = Rlp::new(&self.seal_rlp);
             r.iter().map(|f| f.as_val::<Bytes>()).collect()

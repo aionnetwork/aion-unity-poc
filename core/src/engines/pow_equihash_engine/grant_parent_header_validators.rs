@@ -65,9 +65,9 @@ impl<'a> GrantParentHeaderValidator for DifficultyValidator<'a> {
                 header.number()
             );
         } else {
-            let calc_difficulty = self.difficulty_calc.calculate_difficulty(
+            let calc_difficulty = self.difficulty_calc.calculate_difficulty_pow(
                 header,
-                parent_header,
+                Some(parent_header),
                 grant_parent_header,
             );
             if difficulty != calc_difficulty {

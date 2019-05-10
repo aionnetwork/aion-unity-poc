@@ -394,7 +394,7 @@ mod tests {
         fn previous_block_header_with_seal_type(
             &self,
             hash: &H256,
-            seal_type: SealType,
+            seal_type: &SealType,
         ) -> Option<encoded::Header>
         {
             unimplemented!()
@@ -403,7 +403,7 @@ mod tests {
         fn latest_block_header_with_seal_type(
             &self,
             hash: &H256,
-            seal_type: SealType,
+            seal_type: &SealType,
         ) -> Option<encoded::Header>
         {
             unimplemented!()

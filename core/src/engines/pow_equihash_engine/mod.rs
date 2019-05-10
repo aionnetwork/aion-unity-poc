@@ -109,16 +109,18 @@ impl DifficultyCalc {
             minimum_difficulty: params.minimum_difficulty,
         }
     }
-    pub fn calculate_difficulty(
+    pub fn calculate_difficulty_pow(
         &self,
         header: &Header,
-        parent: &Header,
+        parent: Option<&Header>,
         grant_parent: Option<&Header>,
     ) -> U256
     {
+        // TODO_unity_poc: modify this
         if header.number() == 0 {
             panic!("Can't calculate genesis block difficulty.");
         }
+        let parent = parent.expect("Pow block must have a parent");
         if parent.number() == 0 {
             return parent.difficulty().clone();
         }
@@ -161,6 +163,17 @@ impl DifficultyCalc {
         }
         output_difficulty = cmp::max(output_difficulty, self.minimum_difficulty);
         output_difficulty
+    }
+
+    pub fn calculate_difficulty_pos(
+        &self,
+        _header: &Header,
+        _parent: Option<&Header>,
+        _grant_parent: Option<&Header>,
+    ) -> U256
+    {
+        // TODO_unity_poc: implement this
+        U256::from(1)
     }
 }
 
@@ -224,12 +237,21 @@ impl POWEquihashEngine {
     fn calculate_difficulty(
         &self,
         header: &Header,
-        parent: &Header,
+        seal_type: &SealType,
+        parent: Option<&Header>,
         grant_parent: Option<&Header>,
     ) -> U256
     {
-        self.difficulty_calc
-            .calculate_difficulty(header, parent, grant_parent)
+        match seal_type {
+            SealType::Pow => {
+                self.difficulty_calc
+                    .calculate_difficulty_pow(header, parent, grant_parent)
+            }
+            SealType::Pos => {
+                self.difficulty_calc
+                    .calculate_difficulty_pos(header, parent, grant_parent)
+            }
+        }
     }
 
     fn calculate_reward(&self, header: &Header) -> U256 {
@@ -274,11 +296,12 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     fn populate_from_parent(
         &self,
         header: &mut Header,
-        parent: &Header,
+        seal_type: &SealType,
+        parent: Option<&Header>,
         grant_parent: Option<&Header>,
     )
     {
-        let difficulty = self.calculate_difficulty(header, parent, grant_parent);
+        let difficulty = self.calculate_difficulty(header, seal_type, parent, grant_parent);
         header.set_difficulty(difficulty);
     }
 

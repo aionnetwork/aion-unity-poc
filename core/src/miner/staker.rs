@@ -101,7 +101,7 @@ impl Staker {
             )
             .unwrap_or(H128::default());
 
-        let latest_pos_block_header = client.best_block_header_with_seal_type(SealType::Pos);
+        let latest_pos_block_header = client.best_block_header_with_seal_type(&SealType::Pos);
         let (diff, timestamp, seed) = match latest_pos_block_header {
             Some(header) => {
                 let seal = header.seal();
@@ -131,13 +131,13 @@ impl Staker {
     ) -> Result<(), Error>
     {
         // 1. create a PoS block template
-        let (raw_block, _) = miner.prepare_block(client);
+        let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
 
         // 2. compute the seed and signature
         let latest_pos_block_header =
-            client.latest_block_header_with_seal_type(&parent_hash, SealType::Pos);
+            client.latest_block_header_with_seal_type(&parent_hash, &SealType::Pos);
         let latest_seed = match latest_pos_block_header {
             Some(header) => {
                 let seal = header.seal();

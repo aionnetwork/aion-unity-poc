@@ -377,6 +377,7 @@ impl MiningBlockChainClient for TestBlockChainClient {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
+        seal_type: Option<&SealType>,
     ) -> OpenBlock
     {
         let engine = &*self.spec.engine;
@@ -388,12 +389,30 @@ impl MiningBlockChainClient for TestBlockChainClient {
             .unwrap();
 
         let last_hashes = vec![genesis_header.hash()];
+
+        let block_seal_type = match seal_type {
+            Some(seal_type) => seal_type.clone(),
+            _ => SealType::Pow,
+        };
+
+        let seal_parent_header = self.best_block_header_with_seal_type(&block_seal_type);
+        let seal_grand_parent_header = match &seal_parent_header {
+            Some(header) => {
+                self.previous_block_header_with_seal_type(&header.hash(), &block_seal_type)
+            }
+            None => None,
+        };
+
         let mut open_block = OpenBlock::new(
             engine,
             Default::default(),
             db,
             &genesis_header,
-            None,
+            seal_parent_header.map(|header| header.decode()).as_ref(),
+            seal_grand_parent_header
+                .map(|header| header.decode())
+                .as_ref(),
+            &block_seal_type,
             Arc::new(last_hashes),
             author,
             gas_range_target,
@@ -588,14 +607,14 @@ impl BlockChainClient for TestBlockChainClient {
             .expect("Best block always has header.")
     }
 
-    fn best_block_header_with_seal_type(&self, _seal_type: SealType) -> Option<encoded::Header> {
+    fn best_block_header_with_seal_type(&self, _seal_type: &SealType) -> Option<encoded::Header> {
         unimplemented!();
     }
 
     fn previous_block_header_with_seal_type(
         &self,
         _hash: &H256,
-        _seal_type: SealType,
+        _seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         unimplemented!();
@@ -604,7 +623,7 @@ impl BlockChainClient for TestBlockChainClient {
     fn latest_block_header_with_seal_type(
         &self,
         _hash: &H256,
-        _seal_type: SealType,
+        _seal_type: &SealType,
     ) -> Option<encoded::Header>
     {
         unimplemented!();
