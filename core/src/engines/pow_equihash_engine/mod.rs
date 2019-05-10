@@ -109,13 +109,12 @@ impl DifficultyCalc {
         }
     }
 
-    pub fn calculate_difficulty_pow(
+    pub fn calculate_difficulty_v0(
         &self,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     ) -> U256
     {
-        // TODO_unity_poc: modify this
         let parent = parent.expect("Pow block must have a parent");
         if parent.number() == 0 {
             return parent.difficulty().clone();
@@ -161,7 +160,7 @@ impl DifficultyCalc {
         output_difficulty
     }
 
-    pub fn calculate_difficulty_pos(
+    pub fn calculate_difficulty_v1(
         &self,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
@@ -169,7 +168,7 @@ impl DifficultyCalc {
     {
         // If not parent pos block, return the initial difficulty
         if parent.is_none() {
-            return U256::from(1);
+            return U256::from(16);
         }
         let parent = parent.expect("Pos parent unwrap tested before");
         let parent_difficulty = parent.difficulty().clone();
@@ -183,15 +182,16 @@ impl DifficultyCalc {
         let delta_time = parent_timestamp - grand_parent_timestamp;
         assert!(delta_time > 0);
 
-        let a = 1 / 128;
-        let target_block_time = 10f64;
-        let lambda: f64 = 1f64 / (2f64 * target_block_time);
-        let x = -0.5f64.ln() / lambda;
-        match delta_time as f64 - x {
-            res if res > 0f64 => parent_difficulty / U256::from(1 + a),
-            res if res < 0f64 => parent_difficulty * U256::from(1 + a),
-            _ => parent_difficulty,
-        }
+        // NOTE: the computation below is in f64 (never use it in production)
+        let alpha = 0.1f64;  // due to accuracy loss, alpha * min >= 1
+        let lambda = 1f64 / (2f64 *  10f64);
+        let diff = match (delta_time as f64) - (-0.5f64.ln() / lambda) {
+            res if res > 0f64 => parent_difficulty.as_u64() as f64 / (1f64 + alpha),
+            res if res < 0f64 => parent_difficulty.as_u64() as f64 * (1f64 + alpha),
+            _ => parent_difficulty.as_u64() as f64,
+        };
+
+        U256::from(cmp::max(16u64, diff as u64))
     }
 }
 
@@ -286,30 +286,32 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
     fn populate_from_parent(
         &self,
         header: &mut Header,
-        seal_type: &SealType,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     )
     {
-        let difficulty = self.calculate_difficulty(seal_type, parent, grand_parent);
+        let difficulty = self.calculate_difficulty(1u8, parent, grand_parent);
         header.set_difficulty(difficulty);
     }
 
     fn calculate_difficulty(
         &self,
-        seal_type: &SealType,
+        version: u8,
         parent: Option<&Header>,
         grand_parent: Option<&Header>,
     ) -> U256
     {
-        match seal_type {
-            SealType::Pow => {
+        match version {
+            0u8 => {
                 self.difficulty_calc
-                    .calculate_difficulty_pow(parent, grand_parent)
+                    .calculate_difficulty_v0(parent, grand_parent)
             }
-            SealType::Pos => {
+            1u8 => {
                 self.difficulty_calc
-                    .calculate_difficulty_pos(parent, grand_parent)
+                    .calculate_difficulty_v1(parent, grand_parent)
+            }
+            _ => {
+                unimplemented!()
             }
         }
     }

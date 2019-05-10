@@ -31,7 +31,6 @@ use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
 use header::SealType;
-use time::get_time;
 
 use super::Miner;
 
@@ -101,25 +100,37 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
+        let stake = U128::from(stake).as_u64();
+        if stake == 0 {
+            return 0xffffffffffffffffu64;
+        }
 
-        let latest_pos_block_header = client.best_block_header_with_seal_type(&SealType::Pos);
-        let (diff, timestamp, seed) = match latest_pos_block_header {
-            Some(header) => {
-                let seal = header.seal();
+        // timestamp and previous seed
+        let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
+        let (timestamp, seed) = match parent_header.clone() {
+            Some(parent) => {
+                let seal = parent.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
-                let difficulty = client.latest_pos_difficulty(&header);
-                (difficulty, header.timestamp(), seed.clone())
-            }
-            None => return get_time().sec as u64,
+                (parent.timestamp(), seed.clone())
+            },
+            None => (0u64, Vec::new()),
         };
+
+        // difficulty
+        let grand_parent_header =  match parent_header.clone() {
+            Some(parent) => client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos),
+            None => None,
+        };
+        let difficulty = client.calculate_difficulty(&parent_header, &grand_parent_header);
+
         // \Delta = \frac{d_s \cdot ln({2^{256}}/{hash(seed)})}{V}.
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
         let two_to_256 = U512::from(1) << 32;
         let division = two_to_256 / U512::from(&hash_of_seed[..]);
-        let _delta = (diff.as_u64() as f64) * (division.as_u64() as f64).ln()
-            / (U128::from(stake).as_u64() as f64);
+        let _delta = (difficulty.as_u64() as f64) * (division.as_u64() as f64).ln()
+            / (stake as f64);
 
         let delta = 10;
         timestamp + delta as u64
@@ -166,6 +177,11 @@ impl Staker {
             })?;
 
         // 4. import the block
+        let n = sealed_block.header().number();
+        let d = sealed_block.header().difficulty().clone();
+        let h = sealed_block.header().hash();
+        info!(target: "miner", "Importing pos block. #{}: {}, {:x}", n, d, h);
+
         client.import_sealed_block(sealed_block).or_else(|e| {
             warn!(target: "staker", "Failed to import: {}", e);
             Err(Error::FailedToImport)

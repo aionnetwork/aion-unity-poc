@@ -212,8 +212,8 @@ pub trait BlockChainClient: Sync + Send {
         seal_type: &SealType,
     ) -> Option<encoded::Header>;
 
-    /// Get the latest pos difficulty
-    fn latest_pos_difficulty(&self, parent_header: &encoded::Header) -> U256;
+    /// Get the the mining/staking difficulty based on the parent header and the grand parent header (not necessarily on chain)
+    fn calculate_difficulty(&self, parent_header: &Option<encoded::Header>, grand_parent_header: &Option<encoded::Header>) -> U256;
 
     /// Returns logs matching given filter.
     fn logs(&self, filter: Filter) -> Vec<LocalizedLogEntry>;

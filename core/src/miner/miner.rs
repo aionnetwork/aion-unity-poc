@@ -1304,9 +1304,13 @@ impl MinerService for Miner {
         };
         result.and_then(|sealed| {
             let n = sealed.header().number();
+            let d = sealed.header().difficulty().clone();
             let h = sealed.header().hash();
             client.import_sealed_block(sealed)?;
-            info!(target: "miner", "Submitted block imported OK. #{}: {}", Colour::White.bold().paint(format!("{}", n)), Colour::White.bold().paint(format!("{:x}", h)));
+            info!(target: "miner", "Submitted block imported OK. #{}: {}, {}",
+                Colour::White.bold().paint(format!("{}", n)),
+                Colour::White.bold().paint(format!("{}", d)),
+                Colour::White.bold().paint(format!("{:x}", h)));
             Ok(())
         })
     }

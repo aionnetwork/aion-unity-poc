@@ -242,7 +242,9 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
     // !!!FOR POC ONLY!!!
 
-    // periodically update sealing
+    // periodically update sealing, for purposes:
+    // 1. get more accurate timestamp
+    // 2. generate block even if there is no transaction
     let stop = Arc::new(AtomicBool::new(false));
     thread::spawn({
         let stop = stop.clone();
