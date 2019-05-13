@@ -47,38 +47,18 @@ impl<'a> GrantParentHeaderValidator for DifficultyValidator<'a> {
         grant_parent_header: Option<&Header>,
     ) -> Result<(), Error>
     {
-        let difficulty = *header.difficulty();
-        let parent_difficulty = *parent_header.difficulty();
-        if parent_header.number() == 0u64 {
-            if difficulty != parent_difficulty {
-                return Err(BlockError::InvalidDifficulty(Mismatch {
-                    expected: parent_difficulty,
-                    found: difficulty,
-                })
-                .into());
-            } else {
-                return Ok(());
-            }
-        }
-
-        if grant_parent_header.is_none() {
-            panic!(
-                "non-1st block must have grant parent. block num: {}",
-                header.number()
-            );
+        let difficulty = header.difficulty().clone();
+        let calc_difficulty = self
+            .difficulty_calc
+            .calculate_difficulty_v1(Some(parent_header), grant_parent_header);
+        if difficulty != calc_difficulty {
+            Err(BlockError::InvalidDifficulty(Mismatch {
+                expected: calc_difficulty,
+                found: difficulty,
+            })
+            .into())
         } else {
-            let calc_difficulty = self
-                .difficulty_calc
-                .calculate_difficulty_v1(Some(parent_header), grant_parent_header);
-            if difficulty != calc_difficulty {
-                Err(BlockError::InvalidDifficulty(Mismatch {
-                    expected: calc_difficulty,
-                    found: difficulty,
-                })
-                .into())
-            } else {
-                Ok(())
-            }
+            Ok(())
         }
     }
 }

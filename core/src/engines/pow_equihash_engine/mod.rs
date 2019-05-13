@@ -167,16 +167,12 @@ impl DifficultyCalc {
     ) -> U256
     {
         // If not parent pos block, return the initial difficulty
-        if parent.is_none() {
+        if parent.is_none() || grand_parent.is_none() {
             return U256::from(16);
         }
-        let parent = parent.expect("Pos parent unwrap tested before");
+        let parent = parent.expect("Parent unwrap tested before");
         let parent_difficulty = parent.difficulty().clone();
-        // If no grand parent, return the difficulty of parent
-        if grand_parent.is_none() {
-            return parent_difficulty;
-        }
-        let grand_parent = grand_parent.expect("Pos grand parent unwrap tested before");
+        let grand_parent = grand_parent.expect("Grand parent unwrap tested before");
         let parent_timestamp = parent.timestamp();
         let grand_parent_timestamp = grand_parent.timestamp();
         let delta_time = parent_timestamp - grand_parent_timestamp;
