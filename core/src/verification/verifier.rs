@@ -26,6 +26,8 @@ use engines::EthEngine;
 use error::Error;
 use header::Header;
 use super::verification;
+use state::State;
+use state_db::StateDB;
 
 /// Should be used to verify blocks.
 pub trait Verifier: Send + Sync {
@@ -34,9 +36,11 @@ pub trait Verifier: Send + Sync {
         &self,
         header: &Header,
         parent: &Header,
-        grant_parent: Option<&Header>,
+        seal_parent: Option<&Header>,
+        seal_grant_parent: Option<&Header>,
         engine: &EthEngine,
         do_full: Option<verification::FullFamilyParams>,
+        state: Option<State<StateDB>>,
     ) -> Result<(), Error>;
 
     /// Do a final verification check for an enacted header vs its expected counterpart.
