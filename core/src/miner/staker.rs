@@ -72,6 +72,8 @@ impl Staker {
         address.copy_from_slice(&hash[..]);
         address.0[0] = 0xA0;
 
+        info!(target: "staker", "Staking address: {:#?}", address);
+
         Staker {
             engine: spec.engine.clone(),
             staking_registry,
@@ -82,18 +84,18 @@ impl Staker {
 
     /// Calculate the block producing time of this staker
     pub fn calc_produce_time(&self, client: &Client) -> u64 {
-        let map_offset: [u8; 32] = [
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x03,
-        ];
         let map_key = self.address.0;
 
+        let map_offset: [u8; 16] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x06,
+        ];
+
         let mut storage_key: [u8; 32] = [0; 32];
-        let mut sha3 = Keccak::new_sha3_256();
-        sha3.update(&map_offset);
-        sha3.update(&map_key);
-        sha3.finalize(&mut storage_key);
+        let mut digest = Keccak::new_keccak256();
+        digest.update(&map_key);
+        digest.update(&map_offset);
+        digest.finalize(&mut storage_key);
 
         let stake = client
             .storage_at(
@@ -102,9 +104,7 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
-        let mut _stake = U128::from(stake).as_u64();
-        // TODO: remove the following line
-        let stake = 16u64;
+        let stake = U128::from(stake).as_u64();
         if stake == 0 {
             return 0xffffffffffffffffu64;
         }
@@ -224,5 +224,33 @@ impl Staker {
         result[32..96].copy_from_slice(&signature);
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_storage_key() {
+        let map_key = [
+            0xa0, 0x0a, 0x2d, 0x0d, 0x10, 0xce, 0x8a, 0x2e, 0xa4, 0x7a, 0x76, 0xfb, 0xb9, 0x35,
+            0x40, 0x5d, 0xf2, 0xa1, 0x2b, 0x0e, 0x2b, 0xc9, 0x32, 0xf1, 0x88, 0xf8, 0x4b, 0x5f,
+            0x16, 0xda, 0x9c, 0x2c,
+        ];
+        let map_offset: [u8; 16] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x06,
+        ];
+
+        let mut storage_key: [u8; 32] = [0; 32];
+        let mut sha3 = Keccak::new_keccak256();
+        sha3.update(&map_key);
+        sha3.update(&map_offset);
+        sha3.finalize(&mut storage_key);
+
+        println!("{:?}", storage_key);
+
+        // expect = 79c9d4e8e43a4f2ec877a57ddc83b7e6
     }
 }

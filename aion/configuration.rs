@@ -356,6 +356,7 @@ impl Configuration {
         let reseal = self.args.arg_reseal_on_txs.parse::<ResealPolicy>()?;
 
         let options = MinerOptions {
+            staker_private_key: self.args.arg_staker_private_key.clone(),
             force_sealing: self.args.flag_force_sealing,
             reseal_on_external_tx: reseal.external,
             reseal_on_own_tx: reseal.own,

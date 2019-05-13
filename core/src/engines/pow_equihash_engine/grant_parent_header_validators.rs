@@ -131,6 +131,12 @@ impl GrantParentHeaderValidator for POSValidator {
         let state = state.expect("State should exist.");
         // Verify block timestamp
         let stake = self.calculate_stake(sender_from_seed, state);
+        if stake == 0 {
+            return Err(
+                BlockError::InvalidStake.into(),
+            );
+        }
+
         let hash_of_seed = blake2b(&seed[..]);
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
         let delta = (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64);
@@ -147,25 +153,25 @@ impl GrantParentHeaderValidator for POSValidator {
 
 impl POSValidator {
     fn calculate_stake(&self, address: Address, state: State<StateDB>) -> u64 {
-        let staking_registry = Address::default(); // staking contract
-        let map_offset: [u8; 32] = [
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x03,
-        ];
+
+        let staking_registry = Address::from_slice(b"a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4");
+
         let map_key = address.0;
 
+        let map_offset: [u8; 16] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x06,
+        ];
+
         let mut storage_key: [u8; 32] = [0; 32];
-        let mut sha3 = Keccak::new_sha3_256();
-        sha3.update(&map_offset);
-        sha3.update(&map_key);
-        sha3.finalize(&mut storage_key);
+        let mut digest = Keccak::new_keccak256();
+        digest.update(&map_key);
+        digest.update(&map_offset);
+        digest.finalize(&mut storage_key);
 
         let stake = state
             .storage_at(&staking_registry, &H128::from(&storage_key[0..16]))
             .unwrap_or(H128::default());
-        let mut _stake = U128::from(stake).as_u64();
-        // TODO: remove the following line
-        16u64
+        U128::from(stake).as_u64()
     }
 }
