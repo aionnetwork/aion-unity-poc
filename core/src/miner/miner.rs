@@ -86,6 +86,8 @@ pub enum Banning {
 /// Configures the behaviour of the miner.
 #[derive(Debug, PartialEq)]
 pub struct MinerOptions {
+    /// Staker private key
+    pub staker_private_key: Option<String>,
     /// Force the miner to reseal, even when nobody has asked for work.
     pub force_sealing: bool,
     /// Reseal on receipt of new external transactions.
@@ -127,6 +129,7 @@ pub struct MinerOptions {
 impl Default for MinerOptions {
     fn default() -> Self {
         MinerOptions {
+            staker_private_key: None,
             force_sealing: false,
             reseal_on_external_tx: false,
             reseal_on_own_tx: true,

@@ -72,6 +72,8 @@ impl Staker {
         address.copy_from_slice(&hash[..]);
         address.0[0] = 0xA0;
 
+        info!(target: "staker", "Staking address: {:#?}", address);
+
         Staker {
             engine: spec.engine.clone(),
             staking_registry,

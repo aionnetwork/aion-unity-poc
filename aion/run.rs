@@ -57,6 +57,7 @@ use user_defaults::UserDefaults;
 use acore::client::EngineClient;
 use std::sync::atomic::{AtomicBool, Ordering};
 use aion_types::Address;
+use rustc_hex::FromHex;
 
 // Pops along with error messages when a password is missing or invalid.
 const VERIFY_PASSWORD_HINT: &'static str = "Make sure valid password is present in files passed \
@@ -173,6 +174,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
         IoChannel::disconnected()
     };
     // create miner
+    let staker_private_key = cmd.miner_options.staker_private_key.clone();
     let miner = Miner::new(
         cmd.miner_options,
         &spec,
@@ -263,33 +265,50 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
     });
 
     // pos block producing
-    let staker = Staker::new(
-        &spec,
-        Address::default(), // staking contract
-        [0u8; 32],          // private key
-    );
-    thread::spawn({
-        let stop = stop.clone();
-        let miner = miner.clone();
-        let client = client.clone();
-
-        move || {
-            thread::sleep(Duration::from_millis(5000));
-
-            while !stop.load(Ordering::SeqCst) {
-                let now = SystemTime::now();
-                let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
-                let produce_time = staker.calc_produce_time(&*client);
-
-                if since_epoch.as_secs() >= produce_time {
-                    trace!(target: "run", "generating a PoS block");
-                    staker.produce_block(&miner, &*client).ok();
-                }
-
-                thread::sleep(Duration::from_millis(500));
+    match staker_private_key {
+        Some(k) => {
+            let bytes : Vec<u8>;
+            if k.starts_with("0x") {
+                bytes = String::from(&k[2..]).from_hex().expect("Invalid private key");
+            } else {
+                bytes = k.from_hex().expect("Invalid private key");
             }
-        }
-    });
+
+            assert_eq!(bytes.len(), 32);
+
+            let mut sk = [0; 32];
+            sk.copy_from_slice(&bytes[..]);
+
+            let staker = Staker::new(
+                &spec,
+                Address::default(), // staking contract
+                sk,          // private key
+            );
+            thread::spawn({
+                let stop = stop.clone();
+                let miner = miner.clone();
+                let client = client.clone();
+
+                move || {
+                    thread::sleep(Duration::from_millis(5000));
+
+                    while !stop.load(Ordering::SeqCst) {
+                        let now = SystemTime::now();
+                        let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
+                        let produce_time = staker.calc_produce_time(&*client);
+
+                        if since_epoch.as_secs() >= produce_time {
+                            trace!(target: "run", "generating a PoS block");
+                            staker.produce_block(&miner, &*client).ok();
+                        }
+
+                        thread::sleep(Duration::from_millis(500));
+                    }
+                }
+            });
+        },
+        None => {},
+    }
 
     // drop the spec to free up genesis state.
     drop(spec);
