@@ -390,16 +390,40 @@ impl Client {
             }
         };
 
-        let grant_parent = chain.block_header(parent.parent_hash());
-        let grant_parent_header = grant_parent.as_ref();
+        let seal_parent_header = self.latest_block_header_with_seal_type(
+            &header.parent_hash(),
+            &header
+                .seal_type()
+                .clone()
+                .expect("Importing block must have a seal type"),
+        );
+        let seal_grand_parent_header = match &seal_parent_header {
+            Some(header) => {
+                self.previous_block_header_with_seal_type(
+                    &header.hash(),
+                    &header
+                        .seal_type()
+                        .expect("Existing block must have a seal type"),
+                )
+            }
+            None => None,
+        };
 
         // Verify Block Family
         let verify_family_result = self.verifier.verify_block_family(
             header,
             &parent,
-            grant_parent_header,
+            seal_parent_header
+                .clone()
+                .map(|header| header.decode())
+                .as_ref(),
+            seal_grand_parent_header
+                .clone()
+                .map(|header| header.decode())
+                .as_ref(),
             engine,
             Some((&block.bytes, &block.transactions, &**chain, self)),
+            self.state_at_beginning(BlockId::Number(header.number())),
         );
 
         if let Err(e) = verify_family_result {
@@ -420,25 +444,6 @@ impl Client {
         let is_epoch_begin = chain
             .epoch_transition(parent.number(), parent_hash)
             .is_some();
-
-        let seal_parent_header = self.latest_block_header_with_seal_type(
-            &header.parent_hash(),
-            &header
-                .seal_type()
-                .clone()
-                .expect("Importing block must have a seal type"),
-        );
-        let seal_grand_parent_header = match &seal_parent_header {
-            Some(header) => {
-                self.previous_block_header_with_seal_type(
-                    &header.hash(),
-                    &header
-                        .seal_type()
-                        .expect("Existing block must have a seal type"),
-                )
-            }
-            None => None,
-        };
 
         let enact_result = enact_verified(
             block,
@@ -663,7 +668,15 @@ impl Client {
 
             // Commit results
             let mut batch = DBTransaction::new();
-            chain.insert_unordered_block(&mut batch, &block_bytes, receipts, None, None, false, true);
+            chain.insert_unordered_block(
+                &mut batch,
+                &block_bytes,
+                receipts,
+                None,
+                None,
+                false,
+                true,
+            );
             // Final commit to the DB
             self.db.read().write_buffered(batch);
             chain.commit();
@@ -1422,12 +1435,20 @@ impl BlockChainClient for Client {
             .latest_block_header_with_seal_type(hash, seal_type)
     }
 
-    fn calculate_difficulty(&self, parent_header: &Option<encoded::Header>, grand_parent_header: &Option<encoded::Header>) -> U256 {
+    fn calculate_difficulty(
+        &self,
+        parent_header: &Option<encoded::Header>,
+        grand_parent_header: &Option<encoded::Header>,
+    ) -> U256
+    {
         let engine = &*self.engine;
         engine.calculate_difficulty(
             1u8,
             parent_header.clone().map(|header| header.decode()).as_ref(),
-            grand_parent_header.clone().map(|header| header.decode()).as_ref(),
+            grand_parent_header
+                .clone()
+                .map(|header| header.decode())
+                .as_ref(),
         )
     }
 

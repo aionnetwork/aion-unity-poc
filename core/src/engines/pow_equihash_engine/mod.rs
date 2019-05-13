@@ -32,6 +32,8 @@ use header::{Header, SealType};
 use block::ExecutedBlock;
 use error::Error;
 use std::cmp;
+use state::State;
+use state_db::StateDB;
 
 use equihash::EquihashValidator;
 use self::dependent_header_validators::{
@@ -179,8 +181,8 @@ impl DifficultyCalc {
         assert!(delta_time > 0);
 
         // NOTE: the computation below is in f64 (never use it in production)
-        let alpha = 0.1f64;  // due to accuracy loss, alpha * min >= 1
-        let lambda = 1f64 / (2f64 *  10f64);
+        let alpha = 0.1f64; // due to accuracy loss, alpha * min >= 1
+        let lambda = 1f64 / (2f64 * 10f64);
         let diff = match (delta_time as f64) - (-0.5f64.ln() / lambda) {
             res if res > 0f64 => parent_difficulty.as_u64() as f64 / (1f64 + alpha),
             res if res < 0f64 => parent_difficulty.as_u64() as f64 * (1f64 + alpha),
@@ -306,9 +308,7 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
                 self.difficulty_calc
                     .calculate_difficulty_v1(parent, grand_parent)
             }
-            _ => {
-                unimplemented!()
-            }
+            _ => unimplemented!(),
         }
     }
 
@@ -372,7 +372,9 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
         &self,
         header: &Header,
         parent: &Header,
-        grand_parent: Option<&Header>,
+        seal_parent: Option<&Header>,
+        seal_grand_parent: Option<&Header>,
+        state: Option<State<StateDB>>,
     ) -> Result<(), Error>
     {
         // verify parent
@@ -392,7 +394,7 @@ impl Engine<EthereumMachine> for Arc<POWEquihashEngine> {
             grand_validators.push(Box::new(POSValidator {}));
         }
         for v in grand_validators.iter() {
-            v.validate(header, parent, grand_parent)?;
+            v.validate(header, seal_parent, seal_grand_parent, state.clone())?;
         }
 
         Ok(())

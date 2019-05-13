@@ -629,7 +629,12 @@ impl BlockChainClient for TestBlockChainClient {
         unimplemented!();
     }
 
-    fn calculate_difficulty(&self, _parent_header: &Option<encoded::Header>, _grand_parent_header: &Option<encoded::Header>) -> U256 {
+    fn calculate_difficulty(
+        &self,
+        _parent_header: &Option<encoded::Header>,
+        _grand_parent_header: &Option<encoded::Header>,
+    ) -> U256
+    {
         unimplemented!();
     }
 

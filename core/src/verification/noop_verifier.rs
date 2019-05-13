@@ -26,6 +26,8 @@ use engines::EthEngine;
 use error::Error;
 use header::Header;
 use super::{verification, Verifier};
+use state::State;
+use state_db::StateDB;
 
 /// A no-op verifier -- this will verify everything it's given immediately.
 #[allow(dead_code)]
@@ -37,8 +39,10 @@ impl Verifier for NoopVerifier {
         _: &Header,
         _t: &Header,
         _: Option<&Header>,
+        _: Option<&Header>,
         _: &EthEngine,
         _: Option<verification::FullFamilyParams>,
+        _: Option<State<StateDB>>,
     ) -> Result<(), Error>
     {
         Ok(())

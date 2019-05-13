@@ -27,7 +27,7 @@ use tiny_keccak::Keccak;
 use aion_types::{Address, H128, U128, U512};
 use blake2b::blake2b;
 use block::IsBlock;
-use client::{BlockId, MiningBlockChainClient};
+use client::{BlockId, BlockChainClient, MiningBlockChainClient, Client};
 use engines::EthEngine;
 use rcrypto::ed25519::{keypair, signature};
 use spec::Spec;
@@ -81,7 +81,7 @@ impl Staker {
     }
 
     /// Calculate the block producing time of this staker
-    pub fn calc_produce_time(&self, client: &MiningBlockChainClient) -> u64 {
+    pub fn calc_produce_time(&self, client: &Client) -> u64 {
         let map_offset: [u8; 32] = [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -102,9 +102,9 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
-        let mut stake = U128::from(stake).as_u64();
+        let mut _stake = U128::from(stake).as_u64();
         // TODO: remove the following line
-        stake = 16u64;
+        let stake = 16u64;
         if stake == 0 {
             return 0xffffffffffffffffu64;
         }
@@ -116,13 +116,15 @@ impl Staker {
                 let seal = parent.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
                 (parent.timestamp(), seed.clone())
-            },
+            }
             None => (0u64, Vec::new()),
         };
 
         // difficulty
-        let grand_parent_header =  match parent_header.clone() {
-            Some(parent) => client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos),
+        let grand_parent_header = match parent_header.clone() {
+            Some(parent) => {
+                client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos)
+            }
             None => None,
         };
         let difficulty = client.calculate_difficulty(&parent_header, &grand_parent_header);
@@ -132,21 +134,14 @@ impl Staker {
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
-        let delta = (difficulty.as_u64() as f64)
-            * (u.as_u64() as f64).ln()
-            / (stake as f64);
+        let delta = (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64);
         trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
 
         timestamp + max(1u64, delta as u64)
     }
 
     /// Produce a PoS block
-    pub fn produce_block(
-        &self,
-        miner: &Miner,
-        client: &MiningBlockChainClient,
-    ) -> Result<(), Error>
-    {
+    pub fn produce_block(&self, miner: &Miner, client: &Client) -> Result<(), Error> {
         // 1. create a PoS block template
         let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
         let parent_hash = raw_block.header().parent_hash().clone();
@@ -155,7 +150,7 @@ impl Staker {
         // 2. compute the seed and signature
         let latest_pos_block_header =
             client.latest_block_header_with_seal_type(&parent_hash, &SealType::Pos);
-        let latest_seed = match latest_pos_block_header {
+        let latest_seed = match latest_pos_block_header.clone() {
             Some(header) => {
                 let seal = header.seal();
                 let seed = seal.get(0).expect("A pos block has to contain a seeds");
@@ -171,9 +166,33 @@ impl Staker {
         let mut seal: Vec<Vec<u8>> = Vec::new();
         seal.push(seed.to_vec());
         seal.push(signature.to_vec());
+        let parent = client
+            .block_header(BlockId::Number(raw_block.header().number() - 1))
+            .unwrap()
+            .decode();
+        let seal_parent = latest_pos_block_header
+            .clone()
+            .map(|header| header.decode());
+        let seal_grand_parent = match latest_pos_block_header.clone() {
+            Some(parent) => {
+                client.previous_block_header_with_seal_type(&parent.hash(), &SealType::Pos)
+            }
+            None => None,
+        }
+        .clone()
+        .map(|header| header.decode());
+        let state = client.state_at_beginning(BlockId::Number(raw_block.header().number()));
+
         let sealed_block = raw_block
             .lock()
-            .try_seal(&*self.engine, seal)
+            .try_seal_pos(
+                &*self.engine,
+                seal,
+                &parent,
+                seal_parent.as_ref(),
+                seal_grand_parent.as_ref(),
+                state,
+            )
             .or_else(|(e, _)| {
                 warn!(target: "staker", "Seed + signature rejected: {}", e);
                 Err(Error::PosInvalid)
