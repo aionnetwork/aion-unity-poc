@@ -267,23 +267,25 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
     // pos block producing
     match staker_private_key {
         Some(k) => {
+            // parse the staker private keys
             let bytes : Vec<u8>;
             if k.starts_with("0x") {
                 bytes = String::from(&k[2..]).from_hex().expect("Invalid private key");
             } else {
                 bytes = k.from_hex().expect("Invalid private key");
             }
-
             assert_eq!(bytes.len(), 32);
-
             let mut sk = [0; 32];
             sk.copy_from_slice(&bytes[..]);
 
+            // deploy the registry contract with the pre-mined account
+            // 0xa00a2d0d10ce8a2ea47a76fbb935405df2a12b0e2bc932f188f84b5f16da9c2c
             let staker = Staker::new(
                 &spec,
-                Address::default(), // staking contract
-                sk,          // private key
+                Address::from_slice(b"a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4"),
+                sk,
             );
+
             thread::spawn({
                 let stop = stop.clone();
                 let miner = miner.clone();

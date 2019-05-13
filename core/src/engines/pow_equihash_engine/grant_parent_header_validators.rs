@@ -153,7 +153,8 @@ impl GrantParentHeaderValidator for POSValidator {
 
 impl POSValidator {
     fn calculate_stake(&self, address: Address, state: State<StateDB>) -> u64 {
-        let staking_registry = Address::default(); // staking contract
+
+        let staking_registry = Address::from_slice(b"a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4");
 
         let map_key = address.0;
 
