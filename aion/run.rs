@@ -282,7 +282,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
             // 0xa00a2d0d10ce8a2ea47a76fbb935405df2a12b0e2bc932f188f84b5f16da9c2c
             let staker = Staker::new(
                 &spec,
-                Address::from_slice(b"a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4"),
+                Address::from_slice("a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4".from_hex().unwrap().as_slice()),
                 sk,
             );
 

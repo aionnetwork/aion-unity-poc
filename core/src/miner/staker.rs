@@ -105,9 +105,6 @@ impl Staker {
             )
             .unwrap_or(H128::default());
         let stake = U128::from(stake).as_u64();
-        if stake == 0 {
-            return 0xffffffffffffffffu64;
-        }
 
         // timestamp and previous seed
         let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
@@ -134,7 +131,10 @@ impl Staker {
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
-        let delta = (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64);
+        let delta = match stake {
+            0 => 1_000_000_000f64,
+            _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64)
+        };
         trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
 
         timestamp + max(1u64, delta as u64)
