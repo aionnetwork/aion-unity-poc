@@ -84,7 +84,7 @@ impl GrantParentHeaderValidator for POSValidator {
     {
         // First pos block, skip the check
         if parent_header.is_none() {
-            return Ok(());
+            return Ok(()); // This is problematic in production
         }
         let parent_header = parent_header.expect("Parent block header unwrap tested before.");
         let seal = header.seal();
