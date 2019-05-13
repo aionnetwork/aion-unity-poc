@@ -98,6 +98,8 @@ pub enum BlockError {
     UnknownEpochTransition(u64),
     /// Invalid pos timestamp
     InvalidPosTimestamp(u64, u64, u64),
+    /// Invalid stake
+    InvalidStake,
 }
 
 impl fmt::Display for BlockError {
@@ -144,6 +146,9 @@ impl fmt::Display for BlockError {
                     "Valid pos block timestamp {}, parent timestamp {}, expected delta: {}",
                     timestamp, parent_timestamp, delta
                 )
+            },
+            InvalidStake => {
+                format!("Invalid stake amount")
             }
         };
 

@@ -560,6 +560,8 @@ impl<B: Backend> State<B> {
         // 2. If there's an entry for the account in the global cache check for the key or load it into that account.
         // 3. If account is missing in the global cache load it into the local cache and cache the key there.
 
+        trace!("address = {}, key = {:x}", address, key);
+
         // check local cache first without updating
         {
             let local_cache = self.cache.borrow_mut();
