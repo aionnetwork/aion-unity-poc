@@ -999,7 +999,6 @@ impl BlockChain {
                 tdw = tdw + header.difficulty();
             };
 
-
             let info = BlockInfo {
                 hash: hash,
                 number: header.number(),
@@ -1239,7 +1238,6 @@ impl BlockChain {
             .block_details(&parent_hash)
             .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
 
-
         let mut tdw = parent_details.total_pow_difficulty;
         let mut tds = parent_details.total_pos_difficulty;
         if header.seal_type() == Some(SealType::Pos) {
@@ -1247,7 +1245,6 @@ impl BlockChain {
         } else {
             tdw = tdw + header.difficulty();
         };
-
 
         let is_new_best = tdw * tds > self.best_block_total_difficulty();
 
@@ -1492,7 +1489,6 @@ impl BlockChain {
             .block_details(&parent_hash)
             .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
         parent_details.children.push(info.hash);
-
 
         let mut tdw = parent_details.total_pow_difficulty;
         let mut tds = parent_details.total_pos_difficulty;
@@ -1787,8 +1783,10 @@ impl BlockChain {
         let best_block = self.best_block.read();
         let best_ancient_block = self.best_ancient_block.read();
         BlockChainInfo {
-            total_difficulty: best_block.total_pow_difficulty.clone() * best_block.total_pos_difficulty.clone(),
-            pending_total_difficulty: best_block.total_pow_difficulty.clone() * best_block.total_pos_difficulty.clone(),
+            total_difficulty: best_block.total_pow_difficulty.clone()
+                * best_block.total_pos_difficulty.clone(),
+            pending_total_difficulty: best_block.total_pow_difficulty.clone()
+                * best_block.total_pos_difficulty.clone(),
             genesis_hash: self.genesis_hash(),
             best_block_hash: best_block.hash,
             best_block_number: best_block.number,

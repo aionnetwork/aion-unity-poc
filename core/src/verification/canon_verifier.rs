@@ -27,6 +27,8 @@ use error::Error;
 use header::Header;
 use super::Verifier;
 use super::verification;
+use state::State;
+use state_db::StateDB;
 
 /// A canonial verifier -- this does full verification.
 pub struct CanonVerifier;
@@ -36,12 +38,22 @@ impl Verifier for CanonVerifier {
         &self,
         header: &Header,
         parent: &Header,
-        grant_parent: Option<&Header>,
+        seal_parent: Option<&Header>,
+        seal_grant_parent: Option<&Header>,
         engine: &EthEngine,
         do_full: Option<verification::FullFamilyParams>,
+        state: Option<State<StateDB>>,
     ) -> Result<(), Error>
     {
-        verification::verify_block_family(header, parent, grant_parent, engine, do_full)
+        verification::verify_block_family(
+            header,
+            parent,
+            seal_parent,
+            seal_grant_parent,
+            engine,
+            do_full,
+            state,
+        )
     }
 
     fn verify_block_final(&self, expected: &Header, got: &Header) -> Result<(), Error> {

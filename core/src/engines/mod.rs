@@ -49,6 +49,8 @@ use aion_machine::{Machine, LocalizedMachine as Localized};
 use aion_types::{H256, U256, Address};
 use unexpected::{Mismatch, OutOfBounds};
 use bytes::Bytes;
+use state::State;
+use state_db::StateDB;
 
 /// Default EIP-210 contrat code.
 /// As defined in https://github.com/ethereum/EIPs/pull/210
@@ -231,7 +233,9 @@ pub trait Engine<M: Machine>: Sync + Send {
         &self,
         _header: &M::Header,
         _parent: &M::Header,
-        _grant_parent: Option<&M::Header>,
+        _seal_parent: Option<&M::Header>,
+        _seal_grant_parent: Option<&M::Header>,
+        _state: Option<State<StateDB>>,
     ) -> Result<(), Error>
     {
         Ok(())

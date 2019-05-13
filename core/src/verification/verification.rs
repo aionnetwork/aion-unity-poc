@@ -43,6 +43,8 @@ use error::{BlockError, Error};
 use header::{BlockNumber, Header};
 use transaction::{SignedTransaction, UnverifiedTransaction};
 use views::BlockView;
+use state::State;
+use state_db::StateDB;
 
 /// Preprocessed block data gathered in `verify_block_unordered` call
 pub struct PreverifiedBlock {
@@ -119,14 +121,16 @@ pub type FullFamilyParams<'a> = (
 pub fn verify_block_family(
     header: &Header,
     parent: &Header,
-    grant_parent: Option<&Header>,
+    seal_parent: Option<&Header>,
+    seal_grant_parent: Option<&Header>,
     engine: &EthEngine,
     do_full: Option<FullFamilyParams>,
+    state: Option<State<StateDB>>,
 ) -> Result<(), Error>
 {
     // TODO: verify timestamp
-    verify_parent(&header, &parent, engine.params().gas_limit_bound_divisor)?;
-    engine.verify_block_family(&header, &parent, grant_parent)?;
+    verify_parent(header, parent, engine.params().gas_limit_bound_divisor)?;
+    engine.verify_block_family(header, parent, seal_parent, seal_grant_parent, state)?;
 
     let (_bytes, _txs, _bc, _client) = match do_full {
         Some(x) => x,
