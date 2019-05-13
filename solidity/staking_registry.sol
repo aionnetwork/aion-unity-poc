@@ -24,7 +24,8 @@ contract StakingRegistry {
     }
     
     function register(address stakingAddress) {
-        require(msg.sender == stakingAddress);
+        // Disabled for POC only
+        // require(msg.sender == stakingAddress);
         stakers[stakingAddress] = true;
         RegistrationChange(stakingAddress, true);
     }
