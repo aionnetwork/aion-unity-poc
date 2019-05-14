@@ -24,6 +24,7 @@ use acore::encoded::Header as EthHeader;
 
 use serde::{Serialize, Serializer};
 use types::{Bytes, Transaction, H256, H2048, U256};
+use acore::header;
 
 /// Block Transactions
 #[derive(Debug)]
@@ -93,6 +94,9 @@ pub struct Block {
     pub transactions: BlockTransactions,
     /// Size in bytes
     pub size: Option<U256>,
+    /// Seal type
+    #[serde(rename = "sealType")]
+    pub seal_type: Option<SealType>,
 }
 
 /// Block header representation.
@@ -139,6 +143,36 @@ pub struct Header {
     pub solution: Option<Bytes>,
     /// Size in bytes
     pub size: Option<U256>,
+    /// Seal type
+    #[serde(rename = "sealType")]
+    pub seal_type: Option<SealType>,
+}
+
+/// Seal Type
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SealType {
+    /// Type for a block sealed with proof-of-work
+    Pow,
+    /// Type for a block sealed with proof-of-stake
+    Pos,
+}
+
+impl Into<header::SealType> for SealType {
+    fn into(self) -> header::SealType {
+        match self {
+            SealType::Pos => header::SealType::Pos,
+            SealType::Pow => header::SealType::Pow,
+        }
+    }
+}
+
+impl From<header::SealType> for SealType {
+    fn from(condition: header::SealType) -> Self {
+        match condition {
+            header::SealType::Pos => SealType::Pos,
+            header::SealType::Pow => SealType::Pow,
+        }
+    }
 }
 
 impl From<EthHeader> for Header {
@@ -170,6 +204,7 @@ impl<'a> From<&'a EthHeader> for Header {
             extra_data: h.extra_data().into(),
             nonce: nonce,
             solution: solution,
+            seal_type: h.seal_type().map(|seal_type| seal_type.into()),
         }
     }
 }

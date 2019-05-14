@@ -268,9 +268,11 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
     match staker_private_key {
         Some(k) => {
             // parse the staker private keys
-            let bytes : Vec<u8>;
+            let bytes: Vec<u8>;
             if k.starts_with("0x") {
-                bytes = String::from(&k[2..]).from_hex().expect("Invalid private key");
+                bytes = String::from(&k[2..])
+                    .from_hex()
+                    .expect("Invalid private key");
             } else {
                 bytes = k.from_hex().expect("Invalid private key");
             }
@@ -282,7 +284,12 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
             // 0xa00a2d0d10ce8a2ea47a76fbb935405df2a12b0e2bc932f188f84b5f16da9c2c
             let staker = Staker::new(
                 &spec,
-                Address::from_slice("a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4".from_hex().unwrap().as_slice()),
+                Address::from_slice(
+                    "a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4"
+                        .from_hex()
+                        .unwrap()
+                        .as_slice(),
+                ),
                 sk,
             );
 
@@ -296,7 +303,8 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
                     while !stop.load(Ordering::SeqCst) {
                         let now = SystemTime::now();
-                        let since_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
+                        let since_epoch =
+                            now.duration_since(UNIX_EPOCH).expect("Time went backwards");
                         let produce_time = staker.calc_produce_time(&*client);
 
                         if since_epoch.as_secs() >= produce_time {
@@ -308,8 +316,8 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
                     }
                 }
             });
-        },
-        None => {},
+        }
+        None => {}
     }
 
     // drop the spec to free up genesis state.
