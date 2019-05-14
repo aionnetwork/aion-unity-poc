@@ -1,0 +1,48 @@
+containers:
+  n1:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/dev/aion/aionr-unity/blockade/node1": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      3001: 30303
+      8001: 8008
+      9001: 8545
+
+  n2:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/dev/aion/aionr-unity/blockade/node2": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      3002: 30303
+      8002: 8008
+      9002: 8545
+
+  n3:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/dev/aion/aionr-unity/blockade/node3": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      3003: 30303
+      8003: 8008
+      9003: 8545
+
+  n4:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/dev/aion/aionr-unity/blockade/node4": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      3004: 30303
+      8004: 8008
+      9004: 8545
+
+network:
+  flaky: 30%
+  slow: 75ms 100ms distribution normal
