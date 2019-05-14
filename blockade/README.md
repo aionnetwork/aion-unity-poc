@@ -64,7 +64,8 @@ Use the CPU aion miner (change the port number to connect to a different node):
 
 ## Set up the PoS mining
 
-1. Deploy the staking registry contract, using script at `../solidity/`:
+1. Deploy the staking registry contract, using script at `../solidity/` (Note:
+you may need to change the port number):
 
     ```
     node deploy.js deploy
@@ -80,6 +81,20 @@ Use the CPU aion miner (change the port number to connect to a different node):
 
     ```
     node deploy.js call vote [address] [value]
+    ```
+
+## Check the network
+
+- To see the standard output of a node, attack to the docker, e.g.,
+
+    ```
+    docker attach blockade_n1
+    ```
+
+- To attach a web3 console to a node, run:
+
+    ```
+    node console.js 127.0.0.1:9001
     ```
 
 ## Partition the network

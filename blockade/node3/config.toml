@@ -29,7 +29,7 @@ ip_black_list = []
 [http]
 disable = false
 port = 8545
-interface = "local"
+interface = "0.0.0.0"
 apis = ["all", "-pubsub"]
 hosts = ["none"]
 cors = ["none"]
@@ -38,7 +38,7 @@ cors = ["none"]
 [websockets]
 disable = true
 port = 8546
-interface = "local"
+interface = "0.0.0.0"
 apis = ["all", "-pubsub"]
 origins = ["none"]
 hosts = ["none"]
@@ -52,13 +52,13 @@ apis = ["all", "-pubsub"]
 [wallet]
 disable = true
 secure_connect = false
-interface = "local"
+interface = "0.0.0.0"
 port = 8547
 #zmq_key_path = None
 
 [stratum]
 disable = false
-interface = "local"
+interface = "0.0.0.0"
 port = 8008
 #secret = None
 
