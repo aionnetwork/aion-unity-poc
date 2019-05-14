@@ -1,2 +1,6 @@
 aion
 .blockade/
+node*/cache
+node*/chains
+node*/keys
+node*/zmq

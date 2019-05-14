@@ -1,7 +1,7 @@
 [aion]
-chain = "core/res/aion/custom.json"
+chain = "/root/.aion/custom.json"
 #keys_path = None
-base_path = "/home/dev/aion/dotaion/node1"
+#base_path = None
 #db_path = None
 
 [account]

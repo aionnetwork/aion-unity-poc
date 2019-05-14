@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- docker (>= 1.4.0 due to docker-py)
-- iproute2 tools (ip and tc specifically)
+- docker (>= `1.4.0` due to docker-py)
+- iproute2 tools (`ip` and `tc` specifically)
 
 ## Install the blockade
 
@@ -25,7 +25,7 @@ and your user has access to the Docker API.
 Check [here](https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon)
 for instruction. Also, you need to modify the paths in `blockade.yml`.
 
-Then, start the network
+Then, start the network, run
 
 ```
 blockade up
