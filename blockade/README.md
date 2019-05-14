@@ -8,7 +8,7 @@
 ## Install the blockade
 
 ```
-pip3 install blockade
+pip install blockade
 ```
 
 ## Create a docker image
@@ -20,6 +20,18 @@ sudo docker build -t unity:latest .
 
 ## Launch the network
 
+Before you launch the network, make sure the docker service is running 
+and your user has access to the Docker API. 
+Check [here](https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon)
+for instruction. Also, you need to modify the paths in `blockade.yml`.
+
+Then, start the network
+
 ```
 blockade up
 ```
+
+## Set up the POS staking
+
+
+## Partition the network
