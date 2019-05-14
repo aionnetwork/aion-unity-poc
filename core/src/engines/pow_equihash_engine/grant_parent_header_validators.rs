@@ -136,7 +136,7 @@ impl GrantParentHeaderValidator for POSValidator {
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
         let delta = match stake {
             0 => 1_000_000_000f64,
-            _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64)
+            _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64),
         };
         let delta_int = cmp::max(1u64, delta as u64);
         trace!(target: "pos", "pos block time validation. block timestamp: {}, parent timestamp: {}, expected delta: {}", timestamp, parent_timestamp, delta_int);
@@ -151,8 +151,12 @@ impl GrantParentHeaderValidator for POSValidator {
 
 impl POSValidator {
     fn calculate_stake(&self, address: Address, state: State<StateDB>) -> u64 {
-
-        let staking_registry = Address::from_slice("a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4".from_hex().unwrap().as_slice());
+        let staking_registry = Address::from_slice(
+            "a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4"
+                .from_hex()
+                .unwrap()
+                .as_slice(),
+        );
 
         let map_key = address.0;
 

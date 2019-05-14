@@ -146,10 +146,8 @@ impl fmt::Display for BlockError {
                     "Valid pos block timestamp {}, parent timestamp {}, expected delta: {}",
                     timestamp, parent_timestamp, delta
                 )
-            },
-            InvalidStake => {
-                format!("Invalid stake amount")
             }
+            InvalidStake => format!("Invalid stake amount"),
         };
 
         f.write_fmt(format_args!("Block error ({})", msg))

@@ -139,6 +139,7 @@ where
                     total_difficulty: Some(total_difficulty.into()),
                     nonce: nonce,
                     solution: solution,
+                    seal_type: view.seal_type().map(|seal_type| seal_type.into()),
                     transactions: match include_txs {
                         true => {
                             BlockTransactions::Full(
