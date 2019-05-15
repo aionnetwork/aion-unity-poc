@@ -484,6 +484,8 @@ impl BlockChainClient for TestBlockChainClient {
 
     fn block_total_difficulty(&self, _id: BlockId) -> Option<U256> { Some(U256::zero()) }
 
+    fn block_import_latency(&self, _id: BlockId) -> Option<u64> { None }
+
     fn block_hash(&self, id: BlockId) -> Option<H256> { Self::block_hash(self, id) }
 
     fn nonce(&self, address: &Address, id: BlockId) -> Option<U256> {

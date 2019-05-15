@@ -54,6 +54,7 @@ use engines::epoch::{Transition as EpochTransition, PendingTransition as Pending
 use rayon::prelude::*;
 use ansi_term::Colour;
 use kvdb::{DBTransaction, KeyValueDB};
+use time::get_time;
 
 extern crate blake2b;
 
@@ -682,6 +683,7 @@ impl BlockChain {
                     total_pos_difficulty: U256::from(1),
                     parent: header.parent_hash(),
                     children: vec![],
+                    import_latency: 0,
                 };
 
                 let mut batch = DBTransaction::new();
@@ -918,6 +920,7 @@ impl BlockChain {
         let block = BlockView::new(bytes);
         let header = block.header_view();
         let hash = header.hash();
+        let import_latency = get_time().sec as u64 - header.timestamp();
 
         if self.is_known(&hash) {
             return false;
@@ -950,6 +953,7 @@ impl BlockChain {
                 total_pow_difficulty: tdw,
                 total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
+                import_latency: import_latency,
             };
 
             self.prepare_update(
@@ -1005,6 +1009,7 @@ impl BlockChain {
                 total_pow_difficulty: tdw,
                 total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
+                import_latency: import_latency,
             };
 
             let block_details = BlockDetails {
@@ -1013,6 +1018,7 @@ impl BlockChain {
                 total_pos_difficulty: tds,
                 parent: header.parent_hash(),
                 children: Vec::new(),
+                import_latency: import_latency,
             };
 
             let mut update = HashMap::new();
@@ -1290,6 +1296,7 @@ impl BlockChain {
             } else {
                 BlockLocation::Branch
             },
+            import_latency: get_time().sec as u64 - header.timestamp(),
         }
     }
 
@@ -1505,6 +1512,7 @@ impl BlockChain {
             total_pos_difficulty: tds,
             parent: parent_hash,
             children: vec![],
+            import_latency: info.import_latency,
         };
 
         // write to batch

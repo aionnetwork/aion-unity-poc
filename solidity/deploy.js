@@ -11,7 +11,7 @@ node call vote [address] [value]
 console.log("args:" + args);
 let nodeUrl = 'http://127.0.0.1:8545';
 let accountAddress = '0xa00a2D0D10ce8a2EA47A76fBb935405df2a12b0e2BC932F188F84b5f16da9C2C';
-let contractAddress = '0xA05c87D3cfA28a3b2aDae9E4e6e4A850A27B15A252fEcb076650ee28D726dc31'
+let contractAddress = '0xA00876bE75B664DE079B58E7acBf70CE315Ba4aAa487F7DdF2Abd5e0e1A8dFf4'
 let defaultPassword = 'password';
 web3 = new Web3(new Web3.providers.HttpProvider(nodeUrl));
 personal = web3.eth.personal;
@@ -59,10 +59,10 @@ function callMethod(contractInst) {
             ).then((gasAmount) => send(method, gasAmount*2), null);
     } else if (args[1] == 'vote') {
         console.log("voting for: " + args[2] + " value: " + args[3] );
-        let method = contractInst.methods.vote(accountAddress);
+        let method = contractInst.methods.vote(args[2]);
         method.estimateGas(
             {from: accountAddress}
-        ).then((gasAmount) => send(method, gasAmount*2), args[3]);
+        ).then((gasAmount) => send(method, gasAmount*2, args[3]));
     }
 }
 
