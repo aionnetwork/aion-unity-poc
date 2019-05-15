@@ -36,6 +36,8 @@ pub struct BlockInfo {
     pub total_pos_difficulty: U256,
     /// Block location in blockchain.
     pub location: BlockLocation,
+    /// Import latency
+    pub import_latency: u64,
 }
 
 /// Describes location of newly inserted block.

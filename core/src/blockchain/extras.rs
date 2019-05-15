@@ -184,6 +184,8 @@ pub struct BlockDetails {
     pub parent: H256,
     /// List of children block hashes
     pub children: Vec<H256>,
+    /// Import latency
+    pub import_latency: u64,
 }
 
 impl HeapSizeOf for BlockDetails {

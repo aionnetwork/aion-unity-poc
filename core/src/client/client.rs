@@ -1533,6 +1533,18 @@ impl BlockChainClient for Client {
             .map(|d| d.total_pos_difficulty * d.total_pow_difficulty)
     }
 
+    fn block_import_latency(&self, id: BlockId) -> Option<u64> {
+        let chain = self.chain.read();
+        // Pending block is not imported yet
+        if let BlockId::Pending = id {
+            return None;
+        }
+
+        Self::block_hash(&chain, &self.miner, id)
+            .and_then(|hash| chain.block_details(&hash))
+            .map(|d| d.import_latency)
+    }
+
     fn nonce(&self, address: &Address, id: BlockId) -> Option<U256> {
         self.state_at(id).and_then(|s| s.nonce(address).ok())
     }

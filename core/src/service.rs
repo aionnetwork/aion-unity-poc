@@ -229,6 +229,7 @@ impl ClientService {
                         total_pos_difficulty: U256::from(*parent_header.difficulty()),
                         parent: H256::from(*parent_header.parent_hash()),
                         children: vec![],
+                        import_latency: 0,
                     };
                     // reset state db
                     let latest_era_key = [b'l', b'a', b's', b't', 0, 0, 0, 0, 0, 0, 0, 0];
