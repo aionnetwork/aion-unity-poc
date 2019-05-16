@@ -368,15 +368,11 @@ where
         ))
     }
 
+    // ATTENTION!!! Changed this function to return the orphaned block count since given block number only for Unity-POC
     fn block_transaction_count_by_number(&self, num: BlockNumber) -> BoxFuture<Option<RpcU256>> {
-        Box::new(future::ok(match num {
-            BlockNumber::Pending => Some(self.miner.status().transactions_in_pending_block.into()),
-            _ => {
-                self.client
-                    .block(num.into())
-                    .map(|block| block.transactions_count().into())
-            }
-        }))
+        Box::new(future::ok(Some(
+            self.client.orphaned_block_count(num.into()).into(),
+        )))
     }
 
     fn code_at(&self, address: RpcH256, num: Trailing<BlockNumber>) -> BoxFuture<Bytes> {
