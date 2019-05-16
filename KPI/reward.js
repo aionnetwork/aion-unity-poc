@@ -34,16 +34,17 @@ function getBlock(start, end) {
     var promises = []
     for (var i = start; i <= end; i++) {
         promises.push(node_1.eth.getBlock(i).then( (block) => {
+            if (count[block.miner] == null) {
+                count[block.miner] = {num: 0, type: block.sealType}
+            }
+            count[block.miner].num += 1
+            
             if (block.sealType == 'Pos') {
                 totalPos++
             } else if (block.sealType == 'Pow') {
                 totalPow++
             }
-            if (count[block.miner] == null) {
-                count[block.miner] = 1
-            } else {
-                count[block.miner] += 1
-            }
+
         }))
     }
 
@@ -51,8 +52,9 @@ function getBlock(start, end) {
         let total = totalPos + totalPow
         console.log('total pos:' + totalPos + " --- " + totalPos/total*100 + '%')
         console.log('total pow:' + totalPow + " --- " + totalPow/total*100 + '%')
+        console.log("                                  Key                           \t Type \t Total Block \t %overall")
         for (var key in count) {
-            console.log(key + ", " + count[key] + ", " + getPercentage(count[key], total));
+            console.log(key + "\t" + count[key].type + "\t" + count[key].num + "\t" +  getPercentage(count[key].num, total));
         }
     })
 }
