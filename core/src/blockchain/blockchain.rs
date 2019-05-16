@@ -683,7 +683,7 @@ impl BlockChain {
                     total_pos_difficulty: U256::from(1),
                     parent: header.parent_hash(),
                     children: vec![],
-                    import_latency: 0,
+                    import_timestamp: 0,
                 };
 
                 let mut batch = DBTransaction::new();
@@ -920,7 +920,7 @@ impl BlockChain {
         let block = BlockView::new(bytes);
         let header = block.header_view();
         let hash = header.hash();
-        let import_latency = get_time().sec as u64 - header.timestamp();
+        let import_timestamp = get_time().sec as u64;
 
         if self.is_known(&hash) {
             return false;
@@ -953,7 +953,7 @@ impl BlockChain {
                 total_pow_difficulty: tdw,
                 total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
-                import_latency: import_latency,
+                import_timestamp: import_timestamp,
             };
 
             self.prepare_update(
@@ -1009,7 +1009,7 @@ impl BlockChain {
                 total_pow_difficulty: tdw,
                 total_pos_difficulty: tds,
                 location: BlockLocation::CanonChain,
-                import_latency: import_latency,
+                import_timestamp: import_timestamp,
             };
 
             let block_details = BlockDetails {
@@ -1018,7 +1018,7 @@ impl BlockChain {
                 total_pos_difficulty: tds,
                 parent: header.parent_hash(),
                 children: Vec::new(),
-                import_latency: import_latency,
+                import_timestamp: import_timestamp,
             };
 
             let mut update = HashMap::new();
@@ -1296,7 +1296,7 @@ impl BlockChain {
             } else {
                 BlockLocation::Branch
             },
-            import_latency: get_time().sec as u64 - header.timestamp(),
+            import_timestamp: get_time().sec as u64,
         }
     }
 
@@ -1512,7 +1512,7 @@ impl BlockChain {
             total_pos_difficulty: tds,
             parent: parent_hash,
             children: vec![],
-            import_latency: info.import_latency,
+            import_timestamp: info.import_timestamp,
         };
 
         // write to batch

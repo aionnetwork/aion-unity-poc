@@ -143,7 +143,7 @@ impl Staker {
     /// Produce a PoS block
     pub fn produce_block(&self, miner: &Miner, client: &Client) -> Result<(), Error> {
         // 1. create a PoS block template
-        let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos));
+        let (raw_block, _) = miner.prepare_block(client, Some(&SealType::Pos), self.address);
         let parent_hash = raw_block.header().parent_hash().clone();
         let bare_hash = raw_block.header().bare_hash();
 

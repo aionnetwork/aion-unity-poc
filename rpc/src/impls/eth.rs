@@ -114,9 +114,9 @@ where
         match (
             client.block(id.clone()),
             client.block_total_difficulty(id),
-            client.block_import_latency(id),
+            client.block_import_timestamp(id),
         ) {
-            (Some(block), Some(total_difficulty), import_latency) => {
+            (Some(block), Some(total_difficulty), import_timestamp) => {
                 let view = block.header_view();
                 let seal_fields: Vec<Bytes> = view.seal().into_iter().map(Into::into).collect();
                 // Pending block do not yet has nonce and solution. Return empty value in this case.
@@ -144,7 +144,7 @@ where
                     nonce: nonce,
                     solution: solution,
                     seal_type: view.seal_type().map(|seal_type| seal_type.into()),
-                    import_latency: import_latency,
+                    import_timestamp: import_timestamp,
                     transactions: match include_txs {
                         true => {
                             BlockTransactions::Full(

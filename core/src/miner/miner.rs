@@ -310,6 +310,7 @@ impl Miner {
         &self,
         client: &MiningBlockChainClient,
         seal_type: Option<&SealType>,
+        author: Address,
     ) -> (ClosedBlock, Option<H256>)
     {
         trace_time!("prepare_block");
@@ -356,7 +357,7 @@ impl Miner {
                     // block not found - create it.
                     trace!(target: "block", "prepare_block: No existing work - making new block");
                     client.prepare_open_block(
-                        self.author(),
+                        author,
                         (self.gas_floor_target(), self.gas_ceil_target()),
                         self.extra_data(),
                         seal_type,
@@ -656,9 +657,7 @@ impl Miner {
             // | NOTE Code below requires transaction_queue and sealing_work locks.     |
             // | Make sure to release the locks before calling that method.             |
             // --------------------------------------------------------------------------
-            println!("CCC1");
-            let (block, original_work_hash) = self.prepare_block(client, None);
-            println!("CCC2");
+            let (block, original_work_hash) = self.prepare_block(client, None, self.author());
             self.prepare_work(block, original_work_hash);
         }
         let mut sealing_block_last_request = self.sealing_block_last_request.lock();
@@ -1246,7 +1245,7 @@ impl MinerService for Miner {
             // | Make sure to release the locks before calling that method.             |
             // --------------------------------------------------------------------------
             trace!(target: "block", "update_sealing: preparing a block");
-            let (block, original_work_hash) = self.prepare_block(client, None);
+            let (block, original_work_hash) = self.prepare_block(client, None, self.author());
             match self.engine.seals_internally() {
                 Some(true) => {
                     trace!(target: "block", "update_sealing: engine indicates internal sealing");
