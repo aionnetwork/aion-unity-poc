@@ -30,7 +30,7 @@ function getRewardInfoFrom(node) {
             console.log("range larger than current block number")
             return
         }
-        getBlock(node_1, parseInt(args[0]), parseInt(args[1]))
+        getBlock(node, parseInt(args[0]), parseInt(args[1]))
     })
 }
 
