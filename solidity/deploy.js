@@ -69,7 +69,20 @@ function callMethod(contractInst) {
         method.estimateGas(
             {from: accountAddress}
         ).then((gasAmount) => send(method, gasAmount*2, null));
+    } else if (args[1] == 'getvote') {
+        console.log("get vote for: " + args[2]);
+        let method = contractInst.methods.getVote(args[2]);
+        method.estimateGas(
+            {from: accountAddress}
+        ).then((gasAmount) => call(method, gasAmount*2));
     }
+}
+
+function call(method, gasAmount) {
+    console.log("gas amount " + gasAmount);
+    method.call(
+        {from: accountAddress, gas: gasAmount}
+    ).then(console.log).catch(console.log)
 }
 
 function send(method, gasAmount, value) {
