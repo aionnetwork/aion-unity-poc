@@ -14,7 +14,7 @@ node_4 = new Web3(new Web3.providers.HttpProvider(nodeUrl_4));
 const numberOfLatestBlocks = 32;
 const nodes = [node_1, node_2, node_3, node_4]
 
-getBlockTime(node_local)
+getBlockTime(node_1)
 getBlockImportLatency(nodes)
 
 // Get block import latency per node
