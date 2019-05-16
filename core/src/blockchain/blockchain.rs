@@ -118,6 +118,9 @@ pub trait BlockProvider {
     /// Get the header RLP of a block.
     fn block_header_data(&self, hash: &H256) -> Option<encoded::Header>;
 
+    /// Get orphaned block count since the given block
+    fn orphaned_block_count(&self, hash: &H256) -> u64;
+
     /// Get the previous block header with sepcified seal type
     fn previous_block_header_with_seal_type(
         &self,
@@ -288,6 +291,36 @@ impl BlockProvider for BlockChain {
             }
             _ => None,
         }
+    }
+
+    /// Get orphaned block count since the given block
+    fn orphaned_block_count(&self, hash: &H256) -> u64 {
+        let block_details = match self.block_details(hash) {
+            Some(block_details) => block_details,
+            _ => {
+                return 0;
+            }
+        };
+        let mut count = 0;
+        for child_hash in block_details.children {
+            let header = match self.block_header_data(&child_hash) {
+                Some(header) => header,
+                _ => {
+                    continue;
+                }
+            };
+            let canonical_hash = match self.block_hash(header.number()) {
+                Some(canonical_hash) => canonical_hash,
+                _ => {
+                    continue;
+                }
+            };
+            if child_hash != canonical_hash {
+                count += 1;
+            }
+            count += self.orphaned_block_count(&child_hash);
+        }
+        count
     }
 
     /// Get the previous block header with sepcified seal type

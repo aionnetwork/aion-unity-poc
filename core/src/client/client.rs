@@ -1498,6 +1498,20 @@ impl BlockChainClient for Client {
         Self::block_hash(&chain, &self.miner, id).and_then(|hash| chain.block(&hash))
     }
 
+    fn orphaned_block_count(&self, id: BlockId) -> u64 {
+        let chain = self.chain.read();
+
+        // pending block height does not have orphaned blocks
+        if let BlockId::Pending = id {
+            return 0;
+        }
+
+        match Self::block_hash(&chain, &self.miner, id) {
+            Some(hash) => chain.orphaned_block_count(&hash),
+            _ => 0,
+        }
+    }
+
     fn block_status(&self, id: BlockId) -> BlockStatus {
         if let BlockId::Pending = id {
             return BlockStatus::Pending;

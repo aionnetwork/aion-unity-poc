@@ -670,6 +670,8 @@ impl BlockChainClient for TestBlockChainClient {
             .map(encoded::Block::new)
     }
 
+    fn orphaned_block_count(&self, _id: BlockId) -> u64 { 0 }
+
     fn block_extra_info(&self, id: BlockId) -> Option<BTreeMap<String, String>> {
         self.block(id)
             .map(|block| block.view().header())
