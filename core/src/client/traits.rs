@@ -71,8 +71,8 @@ pub trait BlockChainClient: Sync + Send {
     /// Get block total difficulty. (total mining diff * total staking diff)
     fn block_total_difficulty(&self, id: BlockId) -> Option<U256>;
 
-    /// Get block import latency
-    fn block_import_latency(&self, id: BlockId) -> Option<u64>;
+    /// Get block import timestamp
+    fn block_import_timestamp(&self, id: BlockId) -> Option<u64>;
 
     /// Attempt to get address nonce at given block.
     /// May not fail on BlockId::Latest.

@@ -9,7 +9,7 @@ node call vote [address] [value]
 */
 
 console.log("args:" + args);
-let nodeUrl = 'http://127.0.0.1:8545';
+let nodeUrl = 'http://127.0.0.1:9001';
 let accountAddress = '0xa00a2D0D10ce8a2EA47A76fBb935405df2a12b0e2BC932F188F84b5f16da9C2C';
 let contractAddress = '0xA00876bE75B664DE079B58E7acBf70CE315Ba4aAa487F7DdF2Abd5e0e1A8dFf4'
 let defaultPassword = 'password';
@@ -53,7 +53,7 @@ function callMethod(contractInst) {
             registerAccount = accountAddress;
         }
         console.log("register account:" +  registerAccount);
-        let method = contractInst.methods.register(accountAddress);
+        let method = contractInst.methods.register(registerAccount);
         method.estimateGas(
             {from: accountAddress}
             ).then((gasAmount) => send(method, gasAmount*2), null);

@@ -98,8 +98,8 @@ pub struct Block {
     #[serde(rename = "sealType")]
     pub seal_type: Option<SealType>,
     /// Import latency
-    #[serde(rename = "importLatency")]
-    pub import_latency: Option<u64>,
+    #[serde(rename = "importTimestamp")]
+    pub import_timestamp: Option<u64>,
 }
 
 /// Block header representation.
