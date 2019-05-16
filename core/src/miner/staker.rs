@@ -132,7 +132,7 @@ impl Staker {
         let hash_of_seed = blake2b(&new_seed[..]);
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
         let delta = match stake {
-            0 => 1_000_000_000f64,
+            0 => 1_000_000_000_000f64,
             _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64),
         };
         trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);

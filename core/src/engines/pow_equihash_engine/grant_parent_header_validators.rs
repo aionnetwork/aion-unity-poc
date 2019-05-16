@@ -135,7 +135,7 @@ impl GrantParentHeaderValidator for POSValidator {
         let hash_of_seed = blake2b(&seed[..]);
         let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
         let delta = match stake {
-            0 => 1_000_000_000f64,
+            0 => 1_000_000_000_000f64,
             _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64),
         };
         let delta_int = cmp::max(1u64, delta as u64);
