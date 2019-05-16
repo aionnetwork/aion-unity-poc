@@ -24,7 +24,7 @@ use std::cmp::max;
 
 use tiny_keccak::Keccak;
 
-use aion_types::{Address, H128, U128, U512};
+use aion_types::{Address, H128, U128};
 use blake2b::blake2b;
 use block::IsBlock;
 use client::{BlockId, BlockChainClient, MiningBlockChainClient, Client};
@@ -35,6 +35,7 @@ use header::SealType;
 
 use super::Miner;
 use ansi_term::Colour;
+use num_bigint::BigUint;
 
 /*
 ===========================
@@ -130,12 +131,15 @@ impl Staker {
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
-        let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
+        let a = BigUint::parse_bytes(b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16).unwrap();
+        let b = BigUint::from_bytes_be(&hash_of_seed[..]);
+        let u = Staker::ln(&a).unwrap() - Staker::ln(&b).unwrap();
         let delta = match stake {
-            0 => 1_000_000_000f64,
-            _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64),
+            0 => 1_000_000_000_000f64,
+            _ => (difficulty.as_u64() as f64) * u / (stake as f64),
         };
-        trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {} delta: {}", difficulty.as_u64(), u, stake, delta);
+        trace!(target: "staker", "Staking...difficulty: {}, u: {}, stake: {}, delta: {}",
+               difficulty.as_u64(), u, stake, delta);
 
         timestamp + max(1u64, delta as u64)
     }
@@ -224,6 +228,26 @@ impl Staker {
         result[32..96].copy_from_slice(&signature);
 
         result
+    }
+
+    // Credit: https://www.reddit.com/r/rust/comments/6gxvs2/big_numbers_in_rust/
+    fn ln(x: &BigUint) -> Result<f64, String> {
+        let x: Vec<u8> = x.to_bytes_le();
+
+        const BYTES: usize = 12;
+        let start = if x.len() < BYTES {
+            0
+        } else {
+            x.len() - BYTES
+        };
+
+        let mut n: f64 = 0.0;
+        for i in start..x.len() {
+            n = n / 256f64 + (x[i] as f64);
+        }
+        let ln_256: f64 = (256f64).ln();
+
+        Ok(n.ln() + ln_256 * ((x.len() - 1) as f64))
     }
 }
 
