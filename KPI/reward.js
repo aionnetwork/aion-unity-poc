@@ -27,10 +27,11 @@ node_1.eth.getBlockNumber().then((num) => {
         console.log("range larger than current block number")
         return
     }
-    getBlock(args[0], args[1])
+    getBlock(parseInt(args[0]), parseInt(args[1]))
 })
 
 function getBlock(start, end) {
+    console.log('get block info from ' + start + " to " + end)
     var promises = []
     for (var i = start; i <= end; i++) {
         promises.push(node_1.eth.getBlock(i).then( (block) => {
