@@ -1,7 +1,7 @@
 let Web3 = require("aion-web3");
 let web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9001"));
 
-const numberOfLatestBlocks = 16;
+const numberOfLatestBlocks = 128;
 
 web3.eth.getBlockNumber().then(res => {
     const latestBlockNumber = res;
@@ -12,7 +12,7 @@ web3.eth.getBlockNumber().then(res => {
         promises.push(
             new Promise(function(resolve, reject) {
                 web3.eth.getBlock(latestBlockNumber - i).then(res => {
-                    console.log("Block: #" + res.number + ", " + res.sealType + ", difficulty = " + res.difficulty);
+                    // console.log("Block: #" + res.number + ", " + res.sealType + ", difficulty = " + res.difficulty);
                     resolve([res.number, res.sealType, res.difficulty]);
                 });
             })
