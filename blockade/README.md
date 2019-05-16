@@ -85,6 +85,12 @@ you may need to change the port number):
     node deploy.js call vote [address] [value]
     ```
 
+4. Unvote for the staker
+
+    ```
+    node deploy.js call unvote [address] [value]
+    ```
+
 ## Check the network
 
 - To see the standard output of a node, attack to the docker, e.g.,
