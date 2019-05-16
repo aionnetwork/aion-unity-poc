@@ -21,20 +21,24 @@ let totalPow = 0
     node rewards.js [start block number] [end block number]
 */
 
-node_1.eth.getBlockNumber().then((num) => {
-    console.log("current block number: " + num)
-    if (args[1] > num) {
-        console.log("range larger than current block number")
-        return
-    }
-    getBlock(parseInt(args[0]), parseInt(args[1]))
-})
+getRewardInfoFrom(node_1)
 
-function getBlock(start, end) {
+function getRewardInfoFrom(node) {
+    node.eth.getBlockNumber().then((num) => {
+        console.log("current block number: " + num)
+        if (args[1] > num) {
+            console.log("range larger than current block number")
+            return
+        }
+        getBlock(node_1, parseInt(args[0]), parseInt(args[1]))
+    })
+}
+
+function getBlock(node, start, end) {
     console.log('get block info from ' + start + " to " + end)
     var promises = []
     for (var i = start; i <= end; i++) {
-        promises.push(node_1.eth.getBlock(i).then( (block) => {
+        promises.push(node.eth.getBlock(i).then( (block) => {
             if (count[block.miner] == null) {
                 count[block.miner] = {num: 0, type: block.sealType}
             }
