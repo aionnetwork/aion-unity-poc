@@ -29,9 +29,10 @@ use rcrypto::ed25519::verify;
 use tiny_keccak::Keccak;
 use state::State;
 use state_db::StateDB;
-use aion_types::{Address, H128, U128, U512, H256};
+use aion_types::{Address, H128, U128, H256};
 use blake2b::blake2b;
 use rustc_hex::FromHex;
+use num_bigint::BigUint;
 
 pub trait GrantParentHeaderValidator {
     fn validate(
@@ -133,10 +134,12 @@ impl GrantParentHeaderValidator for POSValidator {
         // Verify block timestamp
         let stake = self.calculate_stake(sender_from_seed, state);
         let hash_of_seed = blake2b(&seed[..]);
-        let u = (U512::from(1) << 256) / U512::from(&hash_of_seed[..]);
+        let a = BigUint::parse_bytes(b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16).unwrap();
+        let b = BigUint::from_bytes_be(&hash_of_seed[..]);
+        let u = POSValidator::ln(&a).unwrap() - POSValidator::ln(&b).unwrap();
         let delta = match stake {
             0 => 1_000_000_000_000f64,
-            _ => (difficulty.as_u64() as f64) * (u.as_u64() as f64).ln() / (stake as f64),
+            _ => (difficulty.as_u64() as f64) * u / (stake as f64),
         };
         let delta_int = cmp::max(1u64, delta as u64);
         trace!(target: "pos", "pos block time validation. block timestamp: {}, parent timestamp: {}, expected delta: {}", timestamp, parent_timestamp, delta_int);
@@ -150,6 +153,27 @@ impl GrantParentHeaderValidator for POSValidator {
 }
 
 impl POSValidator {
+
+    // Credit: https://www.reddit.com/r/rust/comments/6gxvs2/big_numbers_in_rust/
+    fn ln(x: &BigUint) -> Result<f64, String> {
+        let x: Vec<u8> = x.to_bytes_le();
+
+        const BYTES: usize = 12;
+        let start = if x.len() < BYTES {
+            0
+        } else {
+            x.len() - BYTES
+        };
+
+        let mut n: f64 = 0.0;
+        for i in start..x.len() {
+            n = n / 256f64 + (x[i] as f64);
+        }
+        let ln_256: f64 = (256f64).ln();
+
+        Ok(n.ln() + ln_256 * ((x.len() - 1) as f64))
+    }
+
     fn calculate_stake(&self, address: Address, state: State<StateDB>) -> u64 {
         let staking_registry = Address::from_slice(
             "a00876be75b664de079b58e7acbf70ce315ba4aaa487f7ddf2abd5e0e1a8dff4"
