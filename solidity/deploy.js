@@ -63,6 +63,12 @@ function callMethod(contractInst) {
         method.estimateGas(
             {from: accountAddress}
         ).then((gasAmount) => send(method, gasAmount*2, args[3]));
+    } else if (args[1] == 'unvote') {
+        console.log("Unvoting for: " + args[2] + " value: " + args[3] );
+        let method = contractInst.methods.unvote(args[2], args[3]);
+        method.estimateGas(
+            {from: accountAddress}
+        ).then((gasAmount) => send(method, gasAmount*2, null));
     }
 }
 
