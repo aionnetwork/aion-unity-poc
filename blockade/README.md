@@ -13,6 +13,8 @@ pip install blockade
 
 ## Create a docker image
 
+You will need to rebuild the docker image when the kernel is updated.
+
 ```
 (cd .. && cargo build && cp target/debug/aion blockade/)
 sudo docker build -t unity:latest .
@@ -88,7 +90,7 @@ you may need to change the port number):
 - To see the standard output of a node, attack to the docker, e.g.,
 
     ```
-    docker attach blockade_n1
+    docker logs blockade_n1
     ```
 
 - To attach a web3 console to a node, run:
@@ -96,5 +98,22 @@ you may need to change the port number):
     ```
     node console.js 127.0.0.1:9001
     ```
+    
+- To delete the databases
+
+    ```
+    sudo rm -fr node*/databases
+    ```
 
 ## Partition the network
+
+Your can partition the network into two groups by
+
+```
+blockade partition n1,n2
+```
+
+Or, apply a random partition:
+```
+blockade random-partition
+```
