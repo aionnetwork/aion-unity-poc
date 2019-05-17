@@ -29,7 +29,7 @@ web3.eth.getBlockNumber().then(res => {
     Promise.all(promises).then(function(values) {
         console.log("Total difficulty:")
         for (let i = 0; i < values.length; i++) {
-            console.log(values[i][2] + "," + values[i][3]);
+            console.log(values[i][0] + "," + values[i][2] + "," + values[i][3]);
         }
     });
 });

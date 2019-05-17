@@ -37,7 +37,6 @@ function getRewardInfoFrom(node) {
 }
 
 function getBlock(node, start, end) {
-    console.log('get block info from ' + start + " to " + end)
     var promises = []
     for (var i = start; i <= end; i++) {
         promises.push(node.eth.getBlock(i).then( (block) => {
