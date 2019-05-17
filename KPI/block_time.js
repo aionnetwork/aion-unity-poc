@@ -46,10 +46,12 @@ function getBlockImportLatency(nodes) {
                     var importLatency = block.importTimestamp - earliestTimestamp
                     totalImportLatency += importLatency
                 }
-                averageImportLatency = totalImportLatency / count
-                networkLatency = (networkLatency * networkLatencyBlockCount + averageImportLatency) / (networkLatencyBlockCount + 1)
-                networkLatencyBlockCount++
-                // console.log("block " + block.number + " average import latency: " + averageImportLatency)
+                if (count > 1) {
+                    averageImportLatency = (totalImportLatency / (count - 1)).toFixed()
+                    networkLatency = (networkLatency * networkLatencyBlockCount + averageImportLatency) / (networkLatencyBlockCount + 1)
+                    networkLatencyBlockCount++
+                }
+                // console.log("block " + block.number + " average import latency: " + averageImportLatency + " ms")
             })
             index++
         }
