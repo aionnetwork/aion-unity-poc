@@ -10,7 +10,7 @@ web3.eth.getBlockNumber().then(res => {
 
     let start = args[0] ? parseInt(args[0]) : latestBlockNumber - numberOfLatestBlocks + 1;
     let end = args[1] ? parseInt(args[1]) : latestBlockNumber;
-    start = Math.max(start, 0);
+    start = Math.max(start, 1);
     end = Math.min(end, latestBlockNumber);
     console.log("Fetching data from block #" + start + " to #" + end);
 
