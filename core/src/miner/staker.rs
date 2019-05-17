@@ -131,7 +131,11 @@ impl Staker {
         // NOTE: never use floating point in production
         let new_seed = self.sign(&seed);
         let hash_of_seed = blake2b(&new_seed[..]);
-        let a = BigUint::parse_bytes(b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16).unwrap();
+        let a = BigUint::parse_bytes(
+            b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            16,
+        )
+        .unwrap();
         let b = BigUint::from_bytes_be(&hash_of_seed[..]);
         let u = Staker::ln(&a).unwrap() - Staker::ln(&b).unwrap();
         let delta = match stake {
@@ -235,11 +239,7 @@ impl Staker {
         let x: Vec<u8> = x.to_bytes_le();
 
         const BYTES: usize = 12;
-        let start = if x.len() < BYTES {
-            0
-        } else {
-            x.len() - BYTES
-        };
+        let start = if x.len() < BYTES { 0 } else { x.len() - BYTES };
 
         let mut n: f64 = 0.0;
         for i in start..x.len() {

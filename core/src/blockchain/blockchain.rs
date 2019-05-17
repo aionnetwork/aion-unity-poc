@@ -953,7 +953,7 @@ impl BlockChain {
         let block = BlockView::new(bytes);
         let header = block.header_view();
         let hash = header.hash();
-        let import_timestamp = get_time().sec as u64;
+        let import_timestamp = get_time().sec as u64 * 1000 + get_time().nsec as u64 / 1000000;
 
         if self.is_known(&hash) {
             return false;
@@ -1329,7 +1329,7 @@ impl BlockChain {
             } else {
                 BlockLocation::Branch
             },
-            import_timestamp: get_time().sec as u64,
+            import_timestamp: get_time().sec as u64 * 1000 + get_time().nsec as u64 / 1000000,
         }
     }
 

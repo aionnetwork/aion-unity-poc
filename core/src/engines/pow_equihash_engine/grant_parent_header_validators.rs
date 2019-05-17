@@ -134,7 +134,11 @@ impl GrantParentHeaderValidator for POSValidator {
         // Verify block timestamp
         let stake = self.calculate_stake(sender_from_seed, state);
         let hash_of_seed = blake2b(&seed[..]);
-        let a = BigUint::parse_bytes(b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16).unwrap();
+        let a = BigUint::parse_bytes(
+            b"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            16,
+        )
+        .unwrap();
         let b = BigUint::from_bytes_be(&hash_of_seed[..]);
         let u = POSValidator::ln(&a).unwrap() - POSValidator::ln(&b).unwrap();
         let delta = match stake {
@@ -153,17 +157,12 @@ impl GrantParentHeaderValidator for POSValidator {
 }
 
 impl POSValidator {
-
     // Credit: https://www.reddit.com/r/rust/comments/6gxvs2/big_numbers_in_rust/
     fn ln(x: &BigUint) -> Result<f64, String> {
         let x: Vec<u8> = x.to_bytes_le();
 
         const BYTES: usize = 12;
-        let start = if x.len() < BYTES {
-            0
-        } else {
-            x.len() - BYTES
-        };
+        let start = if x.len() < BYTES { 0 } else { x.len() - BYTES };
 
         let mut n: f64 = 0.0;
         for i in start..x.len() {
