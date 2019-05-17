@@ -19,25 +19,17 @@ web3.eth.getBlockNumber().then(res => {
         promises.push(
             new Promise(function(resolve, reject) {
                 web3.eth.getBlock(i).then(res => {
-                    // console.log("Block: #" + res.number + ", " + res.sealType + ", difficulty = " + res.difficulty);
-                    resolve([res.number, res.sealType, res.difficulty]);
+                    // console.log("Block: #" + res.number + ", " + res.sealType + ", " + res.timestamp + ", td = " + res.totalDifficulty);
+                    resolve([res.number, res.sealType, res.timestamp, res.totalDifficulty]);
                 });
             })
         );
     }
 
     Promise.all(promises).then(function(values) {
-        console.log("Proof-of-work difficulty:")
+        console.log("Total difficulty:")
         for (let i = 0; i < values.length; i++) {
-            if (values[i][1] == "Pow") {
-                console.log(values[i][0] + "," + values[i][2]);
-            }
-        }
-        console.log("Proof-of-stake difficulty:")
-        for (let i = 0; i < values.length; i++) {
-            if (values[i][1] == "Pos") {
-                console.log(values[i][0] + "," + values[i][2]);
-            }
+            console.log(values[i][2] + "," + values[i][3]);
         }
     });
 });
