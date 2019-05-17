@@ -12,66 +12,32 @@ node_2 = new Web3(new Web3.providers.HttpProvider(nodeUrl_2));
 node_3 = new Web3(new Web3.providers.HttpProvider(nodeUrl_3));
 node_4 = new Web3(new Web3.providers.HttpProvider(nodeUrl_4));
 
-const numberOfLatestBlocks = 128;
 const nodes = [node_1, node_2, node_3, node_4]
 
-getBlockTime(node_1)
-getBlockImportLatency(nodes)
+let args = process.argv.slice(2);
+const numberOfLatestBlocks = 100;
 
-// Get block import latency per node
-function getBlockImportLatency(nodes) {
-    nodes[0].eth.getBlockNumber().then(res => {
-        const blockHeight = res
-        var index = 0
-        // var nodeLatency = {}
-        var networkLatency = -1;
-        var networkLatencyBlockCount = 0;
-        while (blockHeight > index && index < numberOfLatestBlocks) {
-            var promises = []
-            for (node of nodes) {
-                promises.push(node.eth.getBlock(blockHeight - index)) // get all blocks except the genesis
-            }
-            Promise.all(promises).then(res => {
-                var totalImportLatency = 0;
-                var averageImportLatency = -1;
-                var count = 0;
-                var earliestTimestamp = Number.MAX_SAFE_INTEGER;
-                for (block of res) {
-                    if (block.importTimestamp < earliestTimestamp) {
-                        earliestTimestamp = block.importTimestamp
-                    }
-                    count++
-                }
-                for (block of res) {
-                    var importLatency = block.importTimestamp - earliestTimestamp
-                    totalImportLatency += importLatency
-                }
-                if (count > 1) {
-                    averageImportLatency = (totalImportLatency / (count - 1)).toFixed()
-                    networkLatency = (networkLatency * networkLatencyBlockCount + averageImportLatency) / (networkLatencyBlockCount + 1)
-                    networkLatencyBlockCount++
-                }
-                // console.log("block " + block.number + " average import latency: " + averageImportLatency + " ms")
-            })
-            index++
-        }
-    })
-}
+getBlockTime(node_1)
 
 // Get block time
 function getBlockTime(node) {
     node.eth.getBlockNumber().then(res => {
-        console.log("current block height: " + res)
-        const blockHeight = res
-        var index = 1
+        const latestBlockNumber = res;
+        console.log("Latest block number: " + latestBlockNumber);
+
+        let start = args[0] ? parseInt(args[0]) : latestBlockNumber - numberOfLatestBlocks + 1;
+        let end = args[1] ? parseInt(args[1]) : latestBlockNumber;
+        start = Math.max(start, 0);
+        end = Math.min(end, latestBlockNumber);
+        console.log("Fetching data from block #" + start + " to #" + end);
+
         var promises = []
-        while (blockHeight >= index) {
-            promises.push(node.eth.getBlock(index)) // get all blocks except the genesis
-            index++
+        for (let i = start; i <= end; i++) {
+            promises.push(node.eth.getBlock(i));
         }
 
         Promise.all(promises).then(res => {
-            blocks = res.reverse();
+            blocks = res;
             var blockTimeStatics = calculateBlockTimeStatics(blocks)
             var blockTimeStaticsPow = calculateBlockTimeStatics(blocks, "Pow")
             var blockTimeStaticsPos = calculateBlockTimeStatics(blocks, "Pos")
@@ -85,19 +51,17 @@ function getBlockTime(node) {
 
 function calculateBlockTimeStatics(blocks, sealType) {
     var blockTimes = []
-    var nextBlockTimestamp = -1
-    var count = 0
+    var prevBlockTimestamp = -1
     var blockTimeMean = -1
     var blockTimeStd = -1
-    for (i = 0; i < blocks.length && count < numberOfLatestBlocks; i++) {
+    for (i = 0; i < blocks.length; i++) {
         if (sealType && blocks[i].sealType != sealType) continue
         const timestamp = blocks[i].timestamp
-        if (nextBlockTimestamp != -1) {
-            var blockTime =  nextBlockTimestamp - timestamp
-            blockTimes.push(blockTime)
+        if (prevBlockTimestamp != -1) {
+            var blockTime =  timestamp - prevBlockTimestamp;
+            blockTimes.push(blockTime);
         }
-        nextBlockTimestamp = timestamp
-        count++
+        prevBlockTimestamp = timestamp;
         // console.log(blocks[i].number + ": " + timestamp)
     }
     if (blockTimes.length > 0) {

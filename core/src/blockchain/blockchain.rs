@@ -118,8 +118,8 @@ pub trait BlockProvider {
     /// Get the header RLP of a block.
     fn block_header_data(&self, hash: &H256) -> Option<encoded::Header>;
 
-    /// Get orphaned block count since the given block
-    fn orphaned_block_count(&self, hash: &H256) -> u64;
+    /// Get block count at the height of the given block block
+    fn block_count(&self, hash: &H256) -> u64;
 
     /// Get the previous block header with sepcified seal type
     fn previous_block_header_with_seal_type(
@@ -294,33 +294,22 @@ impl BlockProvider for BlockChain {
     }
 
     /// Get orphaned block count since the given block
-    fn orphaned_block_count(&self, hash: &H256) -> u64 {
-        let block_details = match self.block_details(hash) {
-            Some(block_details) => block_details,
+    fn block_count(&self, hash: &H256) -> u64 {
+        let _ = match self.block_details(hash) {
+            Some(block_details) => {
+                let _ = match self.block_details(&block_details.parent) {
+                    Some(parent_block_details) => {
+                        return parent_block_details.children.len() as u64;
+                    }
+                    _ => {
+                        return 1; // genesis
+                    }
+                };
+            },
             _ => {
-                return 0;
+                return 0; // block not found
             }
         };
-        let mut count = 0;
-        for child_hash in block_details.children {
-            let header = match self.block_header_data(&child_hash) {
-                Some(header) => header,
-                _ => {
-                    continue;
-                }
-            };
-            let canonical_hash = match self.block_hash(header.number()) {
-                Some(canonical_hash) => canonical_hash,
-                _ => {
-                    continue;
-                }
-            };
-            if child_hash != canonical_hash {
-                count += 1;
-            }
-            count += self.orphaned_block_count(&child_hash);
-        }
-        count
     }
 
     /// Get the previous block header with sepcified seal type

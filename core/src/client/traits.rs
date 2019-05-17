@@ -65,8 +65,8 @@ pub trait BlockChainClient: Sync + Send {
     /// Get raw block data by block header hash.
     fn block(&self, id: BlockId) -> Option<encoded::Block>;
 
-    /// Get the orphaned block count since the given block number.
-    fn orphaned_block_count(&self, id: BlockId) -> u64;
+    /// Get block count at the height of the given block block
+    fn block_count(&self, id: BlockId) -> u64;
 
     /// Get block status by block header hash.
     fn block_status(&self, id: BlockId) -> BlockStatus;

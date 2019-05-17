@@ -1,6 +1,5 @@
 var Web3 = require('aion-web3');
 const math = require("mathjs");
-var args = process.argv.slice(2);
 
 let nodeUrl_local = 'http://127.0.0.1:8545';
 let nodeUrl_1 = 'http://127.0.0.1:9001';
@@ -17,20 +16,23 @@ let count = {}
 let totalPos = 0
 let totalPow = 0
 
-/*
-    node rewards.js [start block number] [end block number]
-*/
+let args = process.argv.slice(2);
+const numberOfLatestBlocks = 100;
 
 getRewardInfoFrom(node_1)
 
 function getRewardInfoFrom(node) {
-    node.eth.getBlockNumber().then((num) => {
-        console.log("current block number: " + num)
-        if (args[1] > num) {
-            console.log("range larger than current block number")
-            return
-        }
-        getBlock(node, parseInt(args[0]), parseInt(args[1]))
+    node.eth.getBlockNumber().then(res => {
+        const latestBlockNumber = res;
+        console.log("Latest block number: " + latestBlockNumber);
+
+        let start = args[0] ? parseInt(args[0]) : latestBlockNumber - numberOfLatestBlocks + 1;
+        let end = args[1] ? parseInt(args[1]) : latestBlockNumber;
+        start = Math.max(start, 0);
+        end = Math.min(end, latestBlockNumber);
+        console.log("Fetching data from block #" + start + " to #" + end);
+
+        getBlock(node, start, end)
     })
 }
 

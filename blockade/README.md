@@ -23,7 +23,7 @@ for instruction. Then, run in a terminal
 
 ```
 (cd .. && cargo build && cp target/debug/aion blockade/)
-docker build -t unity:latest .
+sudo docker build -t unity:latest .
 ```
 
 Test if the docker image is ready to use:
