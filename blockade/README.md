@@ -1,11 +1,13 @@
-# Network Partition Simulation Using Blockade
+# Set Up a Network Using Blockade
 
-## Requirements
+## Prerequisites
 
-- docker (>= `1.4.0` due to docker-py)
-- iproute2 tools (`ip` and `tc` specifically)
+You will need to install the following software:
 
-## Install the blockade
+- docker and docker-compose
+- iproute2 tools (`ip` and `tc` specifically, typically pre-installed)
+
+and the blockade package:
 
 ```
 pip install blockade
@@ -13,33 +15,41 @@ pip install blockade
 
 ## Create a docker image
 
-You will need to rebuild the docker image when the kernel is updated.
+The next step is to create a docker image, which is required every time the kernel is updated.
+
+Before you start, make sure the docker service is running and your user has access to the Docker API.
+Please check [this guide]((https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon))
+for instruction. Then, run in a terminal
 
 ```
 (cd .. && cargo build && cp target/debug/aion blockade/)
-sudo docker build -t unity:latest .
+docker build -t unity:latest .
 ```
+
+Test if the docker image is ready to use:
+```
+docker run unity "./aion"
+```
+
+Note: this article assume your work directory is this folder unless otherwise stated.
 
 ## Launch the network
 
-Before you launch the network, make sure the docker service is running 
-and your user has access to the Docker API. 
-Check [here](https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon)
-for instruction. An easy command to test is
-```
-docker run unity
-```
-
-Also, you need to modify the paths in `blockade.yml`. This is required because
-the docker mount paths must be absolute.
-
-Finally, you can start the network by executing
+Before you launch the network, you need to modify the paths in the `blockade.yml` file. This is required because
+the docker mount paths must be absolute. Then, you can start the network by the following command:
 
 ```
 blockade up
 ```
 
+To destroy the network, run
+```
+blockade destroy
+```
+
 ## Miner and staker addresses
+
+These following addresses are extracted based on the config files in `node1`, `node2`, ...
 
 Miners:
 ```
@@ -57,69 +67,68 @@ node3: 0xa06586f27e6c4e218183cde720931b35056d3857b52b8aa28afbf0db110cac03
 node4: 0xa0d9342bc958587c8f14781eb6b124f68336d3921732a111343f11df0e3f13fb
 ```
 
-## Set up the PoW mining
+## Set up PoW mining
 
-Use the CPU aion miner (change the port number to connect to a different node):
+Use the CPU aion miner (change the port number to for a different node):
 ```
 ./aionminer -l 127.0.0.1:8001 -u 0xa0a95e710948d17a33c9bab892b33f7b25da064d3109f12ac89f249291b5dcd9 -d 0 -t 1
 ```
 
-## Set up the PoS mining
+## Set up PoS forging
 
-1. Deploy the staking registry contract, using script at `../solidity/` (Note:
-you may need to change the port number):
+1. Deploy the staking registry contract, using script  located at `../solidity/`:
 
     ```
     node deploy.js deploy
     ```
 
-2. Register the staker (addresses are listed above):
+2. Register a staker (addresses are listed above):
 
     ```
     node deploy.js call register [address]
     ```
 
-3. Vote for the staker
+3. Vote for a staker
 
     ```
     node deploy.js call vote [address] [value]
     ```
 
-4. Unvote for the staker
+4. Unvote for a staker
 
     ```
     node deploy.js call unvote [address] [value]
     ```
 
-## Check the network
-
-- To see the standard output of a node, attack to the docker, e.g.,
-
-    ```
-    docker logs blockade_n1
-    ```
-
-- To attach a web3 console to a node, run:
-
-    ```
-    node console.js 127.0.0.1:9001
-    ```
-    
-- To delete the databases
-
-    ```
-    sudo rm -fr node*/databases
-    ```
-
 ## Partition the network
 
-Your can partition the network into two groups by
+Your can partition the network into groups by
 
 ```
 blockade partition n1,n2
 ```
 
-Or, apply a random partition:
+Or, to apply a random partition:
 ```
 blockade random-partition
+```
+
+## Other useful commands
+
+To attach to a node, run:
+
+```
+docker attach blockade_n1
+```
+
+To create a web3 console to a node, go to the `aion-web3` folder and run:
+
+```
+node console.js 127.0.0.1:9001
+```
+    
+To delete the databases and reset the network, run:
+
+```
+sudo rm -fr node*/databases
 ```
