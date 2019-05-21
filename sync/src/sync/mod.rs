@@ -134,7 +134,7 @@ impl SyncMgr {
                 let chain_info = SyncStorage::get_chain_info();
                 let block_number_last_time = SyncStorage::get_synced_block_number_last_time();
                 let block_number_now = chain_info.best_block_number;
-                let sync_speed = (block_number_now - block_number_last_time) / STATICS_INTERVAL;
+                let sync_speed = (block_number_now as i64 - block_number_last_time as i64).abs() as u64 / STATICS_INTERVAL;
                 let mut active_nodes = P2pMgr::get_nodes(ALIVE);
                 let active_nodes_count = active_nodes.len();
 
@@ -189,29 +189,29 @@ impl SyncMgr {
                 }
                 info!(target: "sync", "{:-^127}","");
 
-                if block_number_now + 8 < SyncStorage::get_network_best_block_number()
-                    && block_number_now - block_number_last_time < 2
-                {
-                    SyncStorage::get_block_chain().clear_queue();
-                    SyncStorage::clear_downloaded_headers();
-                    SyncStorage::clear_downloaded_blocks();
-                    SyncStorage::clear_requested_blocks();
-                    SyncStorage::clear_headers_with_bodies_requested();
-                    SyncStorage::set_synced_block_number(SyncStorage::get_chain_info().best_block_number);
-                    let abnormal_mode_nodes_count =
-                        P2pMgr::get_nodes_count_with_mode(Mode::BACKWARD)
-                            + P2pMgr::get_nodes_count_with_mode(Mode::FORWARD);
-                    if abnormal_mode_nodes_count > (active_nodes_count / 5)
-                        || active_nodes_count == 0
-                    {
-                        info!(target: "sync", "Abnormal status, reseting network...");
-                        P2pMgr::reset();
+                // if block_number_now + 8 < SyncStorage::get_network_best_block_number()
+                //     && (block_number_now as i64 - block_number_last_time as i64).abs() < 2
+                // {
+                //     SyncStorage::get_block_chain().clear_queue();
+                //     SyncStorage::clear_downloaded_headers();
+                //     SyncStorage::clear_downloaded_blocks();
+                //     SyncStorage::clear_requested_blocks();
+                //     SyncStorage::clear_headers_with_bodies_requested();
+                //     SyncStorage::set_synced_block_number(SyncStorage::get_chain_info().best_block_number);
+                //     let abnormal_mode_nodes_count =
+                //         P2pMgr::get_nodes_count_with_mode(Mode::BACKWARD)
+                //             + P2pMgr::get_nodes_count_with_mode(Mode::FORWARD);
+                //     if abnormal_mode_nodes_count > (active_nodes_count / 5)
+                //         || active_nodes_count == 0
+                //     {
+                //         info!(target: "sync", "Abnormal status, reseting network...");
+                //         P2pMgr::reset();
 
-                        SyncStorage::clear_imported_block_hashes();
-                        SyncStorage::clear_staged_blocks();
-                        SyncStorage::set_max_staged_block_number(0);
-                    }
-                }
+                //         SyncStorage::clear_imported_block_hashes();
+                //         SyncStorage::clear_staged_blocks();
+                //         SyncStorage::set_max_staged_block_number(0);
+                //     }
+                // }
 
                 SyncStorage::set_synced_block_number_last_time(block_number_now);
                 SyncStorage::set_sync_speed(sync_speed as u16);

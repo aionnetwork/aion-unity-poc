@@ -117,7 +117,7 @@ impl ImportHandler {
                                         max_block_number,
                                     );
                                     SyncStorage::set_synced_block_number(max_block_number);
-                                } else {
+                                } else if SyncStorage::get_synced_block_number() >= SyncStorage::get_network_best_block_number() {
                                     info!(target: "sync", "Node: {}, the best block #{} found, switched from FORWARD mode to NORMAL mode", node.get_node_id(), max_block_number);
                                     node.mode = Mode::NORMAL;
                                 }
@@ -224,8 +224,11 @@ impl ImportHandler {
                                         // break;
                                     }
                                     Mode::FORWARD => {
-                                        info!(target: "sync", "Node: {}, found the best block #{} with status {:?}, switched to NORMAL mode", node.get_node_id(), number, status);
-                                        node.mode = Mode::NORMAL;
+                                        info!(target: "sync", "Node: {}, found the best block #{} with status {:?}", node.get_node_id(), number, status);
+                                        if number >= SyncStorage::get_network_best_block_number() {
+                                            info!(target: "sync", "Node: {}, found the best block #{} with status {:?}, switched to NORMAL mode", node.get_node_id(), number, status);
+                                            node.mode = Mode::NORMAL;
+                                        }
                                         P2pMgr::update_node_with_mode(node.node_hash, &node);
                                         // break;
                                     }

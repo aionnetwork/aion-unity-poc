@@ -3,7 +3,7 @@ containers:
     image: unity
     command: "./aion"
     volumes:
-      "/path/to/aionr-unity/blockade/node1": "/root/.aion"
+      "/home/yzha/Works/kernel/unity-poc/blockade/node1": "/root/.aion"
     expose: [30303, 8545, 8008]
     ports:
       3001: 30303
@@ -14,7 +14,7 @@ containers:
     image: unity
     command: "./aion"
     volumes:
-      "/path/to/aionr-unity/blockade/node2": "/root/.aion"
+      "/home/yzha/Works/kernel/unity-poc/blockade/node2": "/root/.aion"
     expose: [30303, 8545, 8008]
     ports:
       3002: 30303
@@ -25,7 +25,7 @@ containers:
     image: unity
     command: "./aion"
     volumes:
-      "/path/to/aionr-unity/blockade/node3": "/root/.aion"
+      "/home/yzha/Works/kernel/unity-poc/blockade/node3": "/root/.aion"
     expose: [30303, 8545, 8008]
     ports:
       3003: 30303
@@ -36,7 +36,7 @@ containers:
     image: unity
     command: "./aion"
     volumes:
-      "/path/to/aionr-unity/blockade/node4": "/root/.aion"
+      "/home/yzha/Works/kernel/unity-poc/blockade/node4": "/root/.aion"
     expose: [30303, 8545, 8008]
     ports:
       3004: 30303
