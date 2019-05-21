@@ -1,0 +1,1 @@
+blockade start n1 && blockade start n2 && blockade start n3 && blockade start n4 && blockade status

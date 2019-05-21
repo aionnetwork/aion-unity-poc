@@ -484,6 +484,10 @@ impl BlockChainClient for TestBlockChainClient {
 
     fn block_total_difficulty(&self, _id: BlockId) -> Option<U256> { Some(U256::zero()) }
 
+    fn block_total_difficulty_pow(&self, _id: BlockId) -> Option<U256> { Some(U256::zero()) }
+
+    fn block_total_difficulty_pos(&self, _id: BlockId) -> Option<U256> { Some(U256::zero()) }
+
     fn block_import_timestamp(&self, _id: BlockId) -> Option<u64> { None }
 
     fn block_hash(&self, id: BlockId) -> Option<H256> { Self::block_hash(self, id) }
@@ -838,6 +842,8 @@ impl BlockChainClient for TestBlockChainClient {
         let number = self.blocks.read().len() as BlockNumber - 1;
         BlockChainInfo {
             total_difficulty: *self.difficulty.read(),
+            total_difficulty_pow: *self.difficulty.read(),
+            total_difficulty_pos: *self.difficulty.read(),
             pending_total_difficulty: *self.difficulty.read(),
             genesis_hash: self.genesis_hash.clone(),
             best_block_hash: self.last_hash.read().clone(),

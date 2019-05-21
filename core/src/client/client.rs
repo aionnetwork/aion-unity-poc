@@ -1531,7 +1531,7 @@ impl BlockChainClient for Client {
             let latest_difficulty = self
                 .block_total_difficulty(BlockId::Latest)
                 .expect("blocks in chain have details; qed");
-            let pending_difficulty = self
+            let pending_difficulty = self // problematic, ignored in poc
                 .miner
                 .pending_block_header(chain.best_block_number())
                 .map(|header| *header.difficulty());
@@ -1545,6 +1545,50 @@ impl BlockChainClient for Client {
         Self::block_hash(&chain, &self.miner, id)
             .and_then(|hash| chain.block_details(&hash))
             .map(|d| d.total_pos_difficulty * d.total_pow_difficulty)
+    }
+
+    fn block_total_difficulty_pow(&self, id: BlockId) -> Option<U256> {
+        let chain = self.chain.read();
+        if let BlockId::Pending = id {
+            let latest_difficulty = self
+                .block_total_difficulty_pow(BlockId::Latest)
+                .expect("blocks in chain have details; qed");
+            let pending_difficulty = self // problematic, ignored in poc
+                .miner
+                .pending_block_header(chain.best_block_number())
+                .map(|header| *header.difficulty());
+            if let Some(difficulty) = pending_difficulty {
+                return Some(difficulty + latest_difficulty);
+            }
+            // fall back to latest
+            return Some(latest_difficulty);
+        }
+
+        Self::block_hash(&chain, &self.miner, id)
+            .and_then(|hash| chain.block_details(&hash))
+            .map(|d| d.total_pow_difficulty)
+    }
+
+    fn block_total_difficulty_pos(&self, id: BlockId) -> Option<U256> {
+        let chain = self.chain.read();
+        if let BlockId::Pending = id {
+            let latest_difficulty = self
+                .block_total_difficulty_pos(BlockId::Latest)
+                .expect("blocks in chain have details; qed");
+            let pending_difficulty = self // problematic, ignored in poc
+                .miner
+                .pending_block_header(chain.best_block_number())
+                .map(|header| *header.difficulty());
+            if let Some(difficulty) = pending_difficulty {
+                return Some(difficulty + latest_difficulty);
+            }
+            // fall back to latest
+            return Some(latest_difficulty);
+        }
+
+        Self::block_hash(&chain, &self.miner, id)
+            .and_then(|hash| chain.block_details(&hash))
+            .map(|d| d.total_pos_difficulty)
     }
 
     fn block_import_timestamp(&self, id: BlockId) -> Option<u64> {
