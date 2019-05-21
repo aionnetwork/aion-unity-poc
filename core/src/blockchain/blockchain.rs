@@ -305,7 +305,7 @@ impl BlockProvider for BlockChain {
                         return 1; // genesis
                     }
                 };
-            },
+            }
             _ => {
                 return 0; // block not found
             }
@@ -1815,6 +1815,8 @@ impl BlockChain {
         BlockChainInfo {
             total_difficulty: best_block.total_pow_difficulty.clone()
                 * best_block.total_pos_difficulty.clone(),
+            total_difficulty_pow: best_block.total_pow_difficulty.clone(),
+            total_difficulty_pos: best_block.total_pos_difficulty.clone(),
             pending_total_difficulty: best_block.total_pow_difficulty.clone()
                 * best_block.total_pos_difficulty.clone(),
             genesis_hash: self.genesis_hash(),

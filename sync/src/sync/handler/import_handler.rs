@@ -21,7 +21,7 @@
 
 use acore::client::{BlockId, BlockImportError, BlockStatus};
 use acore::error::{BlockError, ImportError};
-use acore::header::Seal;
+use acore::header::{Seal, SealType};
 use acore::views::BlockView;
 use aion_types::{H256, U256};
 
@@ -117,7 +117,9 @@ impl ImportHandler {
                                         max_block_number,
                                     );
                                     SyncStorage::set_synced_block_number(max_block_number);
-                                } else if SyncStorage::get_synced_block_number() >= SyncStorage::get_network_best_block_number() {
+                                } else if SyncStorage::get_synced_block_number()
+                                    >= SyncStorage::get_network_best_block_number()
+                                {
                                     info!(target: "sync", "Node: {}, the best block #{} found, switched from FORWARD mode to NORMAL mode", node.get_node_id(), max_block_number);
                                     node.mode = Mode::NORMAL;
                                 }
@@ -172,13 +174,14 @@ impl ImportHandler {
                     for block in blocks_to_import.iter() {
                         offset += 1;
                         let block_view = BlockView::new(block);
-                        let (hash, number, parent, difficulty) = {
+                        let (hash, number, parent, difficulty, seal_type) = {
                             let header_view = block_view.header_view();
                             (
                                 header_view.hash(),
                                 header_view.number(),
                                 header_view.parent_hash(),
                                 header_view.difficulty(),
+                                header_view.seal_type(),
                             )
                         };
 
@@ -196,18 +199,42 @@ impl ImportHandler {
                                 // if status == BlockStatus::Unknown || status == BlockStatus::Bad {
                                 //     continue;
                                 // }
-
-                                node.current_total_difficulty =
-                                    node.current_total_difficulty + difficulty;
+                                match seal_type {
+                                    Some(SealType::Pow) => {
+                                        node.current_total_difficulty_pow =
+                                            node.current_total_difficulty_pow + difficulty;
+                                    }
+                                    Some(SealType::Pos) => {
+                                        node.current_total_difficulty_pos =
+                                            node.current_total_difficulty_pos + difficulty;
+                                    }
+                                    _ => {}
+                                }
+                                node.current_total_difficulty = node.current_total_difficulty_pow
+                                    * node.current_total_difficulty_pos;
 
                                 node.synced_block_num = number;
                                 if result.is_err() {
                                     if status == BlockStatus::InChain {
-                                        if let Some(current_total_difficulty) =
-                                            client.block_total_difficulty(block_id)
-                                        {
-                                            node.current_total_difficulty = current_total_difficulty
-                                        }
+                                        match (
+                                            client.block_total_difficulty(block_id),
+                                            client.block_total_difficulty_pow(block_id),
+                                            client.block_total_difficulty_pos(block_id),
+                                        ) {
+                                            (
+                                                Some(current_total_difficulty),
+                                                Some(current_total_difficulty_pow),
+                                                Some(current_total_difficulty_pos),
+                                            ) => {
+                                                node.current_total_difficulty =
+                                                    current_total_difficulty;
+                                                node.current_total_difficulty_pow =
+                                                    current_total_difficulty_pow;
+                                                node.current_total_difficulty_pos =
+                                                    current_total_difficulty_pos;
+                                            }
+                                            _ => {}
+                                        };
                                     }
                                     info!(target: "sync", "AlreadyStored block #{}, {:?} received from node {}", number, hash, node.get_node_id());
                                 } else {
@@ -325,6 +352,8 @@ impl ImportHandler {
                                     }
                                 } else {
                                     node.current_total_difficulty = U256::from(0);
+                                    node.current_total_difficulty_pow = U256::from(0);
+                                    node.current_total_difficulty_pos = U256::from(0);
                                     node.synced_block_num = number;
 
                                     if node.target_total_difficulty

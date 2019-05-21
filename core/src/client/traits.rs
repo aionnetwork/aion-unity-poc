@@ -74,6 +74,12 @@ pub trait BlockChainClient: Sync + Send {
     /// Get block total difficulty. (total mining diff * total staking diff)
     fn block_total_difficulty(&self, id: BlockId) -> Option<U256>;
 
+    /// Get block total pow difficulty.
+    fn block_total_difficulty_pow(&self, id: BlockId) -> Option<U256>;
+
+    /// Get block total pos difficulty.
+    fn block_total_difficulty_pos(&self, id: BlockId) -> Option<U256>;
+
     /// Get block import timestamp
     fn block_import_timestamp(&self, id: BlockId) -> Option<u64>;
 
