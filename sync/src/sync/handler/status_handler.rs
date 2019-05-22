@@ -23,7 +23,7 @@ use aion_types::{H256, U256};
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
 use bytes::BufMut;
 use std::mem;
-// use std::time::SystemTime;
+use std::time::SystemTime;
 
 use super::super::action::SyncAction;
 use super::super::event::SyncEvent;
@@ -131,7 +131,12 @@ impl StatusHandler {
             }
         }
 
-        BlockHeadersHandler::get_headers_from_node(node);
+        if node.target_total_difficulty <= node.current_total_difficulty {
+            node.last_request_timestamp = SystemTime::now();
+            P2pMgr::update_node(node.node_hash, node);
+        } else {
+            BlockHeadersHandler::get_headers_from_node(node);
+        }
 
         // if SyncStorage::get_network_best_block_number() <= SyncStorage::get_synced_block_number() {
         //     node.last_request_timestamp = SystemTime::now();
