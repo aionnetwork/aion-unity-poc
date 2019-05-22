@@ -31,11 +31,15 @@ node1.eth.getBlockNumber().then(number1 => {
                 let fork = -1;
                 for (let i = 0; i < Math.min(blocks1.length, blocks2.length); i++) {
                     if (blocks1[i].hash != blocks2[i].hash) {
-                        fork = i - 1;
+                        fork = blocks1[i].number - 1;
                         break;
                     }
                 }
-                console.log("Last common block: " + fork);
+                if (fork != -1) {
+                    console.log("Last common block: " + fork);
+                } else {
+                    console.log("There is no fork");
+                }
 
                 console.log("Total difficulty (chain 1):")
                 let tdw = 1;
