@@ -18,7 +18,7 @@ pip install blockade
 The next step is to create a docker image, which is required every time the kernel is updated.
 
 Before you start, make sure the docker service is running and your user has access to the Docker API.
-Please check [this guide]((https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon))
+Please check [this guide](https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon)
 for instruction. Then, run in a terminal
 
 ```
