@@ -28,16 +28,23 @@ web3.eth.getBlockNumber().then(res => {
 
     Promise.all(promises).then(function(values) {
         console.log("Proof-of-work difficulty:")
+        let tdw = 0;
         for (let i = 0; i < values.length; i++) {
             if (values[i][1] == "Pow") {
                 console.log(values[i][0] + "," + values[i][2]);
+                tdw += parseInt(values[i][2]);
             }
         }
+        console.log("Total: ", tdw);
+
         console.log("Proof-of-stake difficulty:")
+        let tds = 0;
         for (let i = 0; i < values.length; i++) {
             if (values[i][1] == "Pos") {
                 console.log(values[i][0] + "," + values[i][2]);
+                tds += parseInt(values[i][2]);
             }
         }
+        console.log("Total: ", tds);
     });
 });
