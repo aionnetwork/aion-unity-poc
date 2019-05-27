@@ -1,0 +1,195 @@
+containers:
+  n1:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node1": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13001: 30303
+      18001: 8008
+      19001: 8545
+
+  n2:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node2": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13002: 30303
+      18002: 8008
+      19002: 8545
+    links: {n1: master}
+
+  n3:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node3": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13003: 30303
+      18003: 8008
+      19003: 8545
+    links: {n2: master}
+
+  n4:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node4": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13004: 30303
+      18004: 8008
+      19004: 8545
+    links: {n3: master}
+
+  n5:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node5": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13005: 30303
+      18005: 8008
+      19005: 8545
+    links: {n4: master}
+
+  n6:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node6": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13006: 30303
+      18006: 8008
+      19006: 8545
+    links: {n5: master}
+
+  n7:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node7": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13007: 30303
+      18007: 8008
+      19007: 8545
+    links: {n6: master}
+
+  n8:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node8": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13008: 30303
+      18008: 8008
+      19008: 8545
+    links: {n7: master}
+
+  n9:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node9": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13009: 30303
+      18009: 8008
+      19009: 8545
+    links: {n8: master}
+
+  n10:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node10": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13010: 30303
+      18010: 8008
+      19010: 8545
+    links: {n9: master}
+
+  n11:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node11": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13011: 30303
+      18011: 8008
+      19011: 8545
+    links: {n10: master}
+
+  n12:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node12": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13012: 30303
+      18012: 8008
+      19012: 8545
+    links: {n11: master}
+
+  n13:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node13": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13013: 30303
+      18013: 8008
+      19013: 8545
+    links: {n12: master}
+
+  n14:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node14": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13014: 30303
+      18014: 8008
+      19014: 8545
+    links: {n13: master}
+
+  n15:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node15": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13015: 30303
+      18015: 8008
+      19015: 8545
+    links: {n14: master}
+
+  n16:
+    image: unity
+    command: "./aion"
+    volumes:
+      "/home/aion/ARRT/cluster/node16": "/root/.aion"
+    expose: [30303, 8545, 8008]
+    ports:
+      13016: 30303
+      18016: 8008
+      19016: 8545
+    links: {n15: master}
+
+network:
+  flaky: 30%
+  slow: 75ms 100ms distribution normal
