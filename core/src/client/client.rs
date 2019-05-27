@@ -409,6 +409,15 @@ impl Client {
             None => None,
         };
 
+        let state = State::from_existing(
+            self.state_db.read().boxed_clone_canon(&parent_hash),
+            parent.state_root().clone(),
+            engine.account_start_nonce(header.number().clone()),
+            self.factories.clone(),
+            self.db.read().clone(),
+        )
+        .ok();
+
         // Verify Block Family
         let verify_family_result = self.verifier.verify_block_family(
             header,
@@ -423,7 +432,7 @@ impl Client {
                 .as_ref(),
             engine,
             Some((&block.bytes, &block.transactions, &**chain, self)),
-            self.state_at_beginning(BlockId::Number(header.number())),
+            state,
         );
 
         if let Err(e) = verify_family_result {
