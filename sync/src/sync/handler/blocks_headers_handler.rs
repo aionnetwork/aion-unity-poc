@@ -110,7 +110,7 @@ impl BlockHeadersHandler {
                     } else if node_num >= self_num - BACKWARD_SYNC_STEP {
                         from = self_num - 16;
                     } else {
-                        return;
+                        from = node_num;
                     }
                 }
                 Mode::BACKWARD => {
@@ -224,13 +224,13 @@ impl BlockHeadersHandler {
                                 || prev_header.hash() != *header.parent_hash())
                         {
                             error!(target: "sync",
-                            "<inconsistent-block-headers num={}, prev+1={}, hash={}, p_hash={}>, hash={}>",
-                            header.number(),
-                            prev_header.number() + 1,
-                            header.parent_hash(),
-                            prev_header.hash(),
-                            header.hash(),
-                        );
+                                "<inconsistent-block-headers num={}, prev+1={}, hash={}, p_hash={}>, hash={}>",
+                                header.number(),
+                                prev_header.number() + 1,
+                                header.parent_hash(),
+                                prev_header.hash(),
+                                header.hash(),
+                            );
                             break;
                         } else {
                             let hash = header.hash();

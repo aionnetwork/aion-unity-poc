@@ -424,7 +424,7 @@ usage! {
             "--author=[ADDRESS]",
             "Specify the block author (aka \"coinbase\") address for sending block rewards from sealed blocks. NOTE: MINING WILL NOT WORK WITHOUT THIS OPTION.", // Sealing/Mining Option
 
-            ARG arg_staker_private_key: (Option<String>) = None, or |c: &Config| c.mining.as_ref()?.staker_private_key.clone(),
+            ARG arg_staker_private_key: (Vec<String>) = Vec::new(), or |c: &Config| c.mining.as_ref()?.staker_private_key.clone(),
             "--staker_private_key=[SK]",
             "Specify the private key of the staking account",
 
@@ -617,7 +617,7 @@ struct WalletApi {
 #[serde(deny_unknown_fields)]
 struct Mining {
     author: Option<String>,
-    staker_private_key: Option<String>,
+    staker_private_key: Option<Vec<String>>,
     force_sealing: Option<bool>,
     reseal_on_txs: Option<String>,
     reseal_min_period: Option<u64>,
