@@ -181,7 +181,7 @@ impl DifficultyCalc {
         assert!(delta_time > 0);
 
         // NOTE: the computation below is in f64 (never use it in production)
-        let alpha = 0.01f64;
+        let alpha = 0.05f64;
         let lambda = 1f64 / (2f64 * 10f64);
         let diff = match (delta_time as f64) - (-0.5f64.ln() / lambda) {
             res if res > 0f64 => cmp::min(parent_difficulty.as_u64() - 1, (parent_difficulty.as_u64() as f64 / (1f64 + alpha)) as u64),
