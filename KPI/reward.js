@@ -1,26 +1,35 @@
-var Web3 = require('aion-web3');
-const math = require("mathjs");
+let Web3 = require('aion-web3');
 
-let nodeUrl_local = 'http://127.0.0.1:8545';
-let nodeUrl_1 = 'http://127.0.0.1:9001';
-let nodeUrl_2 = 'http://127.0.0.1:9002';
-let nodeUrl_3 = 'http://127.0.0.1:9003';
-let nodeUrl_4 = 'http://127.0.0.1:9004';
-node_local = new Web3(new Web3.providers.HttpProvider(nodeUrl_local));
-node_1 = new Web3(new Web3.providers.HttpProvider(nodeUrl_1));
-node_2 = new Web3(new Web3.providers.HttpProvider(nodeUrl_2));
-node_3 = new Web3(new Web3.providers.HttpProvider(nodeUrl_3));
-node_4 = new Web3(new Web3.providers.HttpProvider(nodeUrl_4));
+let urls = [];
 
-let stat = {}
+// localhost
+// urls.push("http://127.0.0.1:8545");
+
+// 4 node cluster
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+
+// 16 node cluster
+// for (let i = 1; i <= 16; i++) {
+//     urls.push("http://10.0.4.47:" + (19000 + i));
+// }
+
+let nodes = [];
+urls.forEach(u => {
+    nodes.push(new Web3(new Web3.providers.HttpProvider(u)));
+});
 
 let args = process.argv.slice(2);
 const numberOfLatestBlocks = 100;
 
-getRewardInfoFrom(node_1)
-getRewardInfoFrom(node_2)
-// getRewardInfoFrom(node_3)
-// getRewardInfoFrom(node_4)
+//=========================
+// MAIN HERE
+//=========================
+let stat = {}
+getRewardInfoFrom(nodes[0]);
+getRewardInfoFrom(nodes[1]);
 
 function url(node) {
     return "[" + node.currentProvider.host + "]";
@@ -50,7 +59,7 @@ function getBlock(node, start, end) {
                 stat[url(node)].count[block.miner] = {num: 0, type: block.sealType}
             }
             stat[url(node)].count[block.miner].num += 1
-            
+
             if (block.sealType == 'Pos') {
                 stat[url(node)].totalPos++
             } else if (block.sealType == 'Pow') {

@@ -310,7 +310,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
                         staker.produce_block(&miner, &*client).ok();
                     }
 
-                    thread::sleep(Duration::from_millis(500));
+                    thread::sleep(Duration::from_millis(100));
                 }
             }
         });
