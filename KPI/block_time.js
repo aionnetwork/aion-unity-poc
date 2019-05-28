@@ -1,23 +1,34 @@
-var Web3 = require('aion-web3');
-const math = require("mathjs");
+let Web3 = require('aion-web3');
+let math = require('mathjs');
 
-let nodeUrl_local = 'http://127.0.0.1:8545';
-let nodeUrl_1 = 'http://127.0.0.1:9001';
-let nodeUrl_2 = 'http://127.0.0.1:9002';
-let nodeUrl_3 = 'http://127.0.0.1:9003';
-let nodeUrl_4 = 'http://127.0.0.1:9004';
-node_local = new Web3(new Web3.providers.HttpProvider(nodeUrl_local));
-node_1 = new Web3(new Web3.providers.HttpProvider(nodeUrl_1));
-node_2 = new Web3(new Web3.providers.HttpProvider(nodeUrl_2));
-node_3 = new Web3(new Web3.providers.HttpProvider(nodeUrl_3));
-node_4 = new Web3(new Web3.providers.HttpProvider(nodeUrl_4));
+let urls = [];
 
-const nodes = [node_1, node_2, node_3, node_4]
+// localhost
+// urls.push("http://127.0.0.1:8545");
+
+// 4 node cluster
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9001");
+
+// 16 node cluster
+// for (let i = 1; i <= 16; i++) {
+//     urls.push("http://10.0.4.47:" + (19000 + i));
+// }
+
+let nodes = [];
+urls.forEach(u => {
+    nodes.push(new Web3(new Web3.providers.HttpProvider(u)));
+});
 
 let args = process.argv.slice(2);
 const numberOfLatestBlocks = 100;
 
-getBlockTime(node_1)
+//=========================
+// MAIN HERE
+//=========================
+getBlockTime(nodes[0])
 
 // Get block time
 function getBlockTime(node) {
