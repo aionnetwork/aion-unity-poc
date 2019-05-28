@@ -8,9 +8,9 @@ let urls = [];
 
 // 4 node cluster
 urls.push("http://127.0.0.1:9001");
-urls.push("http://127.0.0.1:9001");
-urls.push("http://127.0.0.1:9001");
-urls.push("http://127.0.0.1:9001");
+urls.push("http://127.0.0.1:9002");
+urls.push("http://127.0.0.1:9003");
+urls.push("http://127.0.0.1:9004");
 
 // 16 node cluster
 // for (let i = 1; i <= 16; i++) {
