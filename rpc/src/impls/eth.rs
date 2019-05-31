@@ -37,7 +37,7 @@ use sync::sync::SyncProvider;
 use acore::account_provider::AccountProvider;
 use acore::client::{MiningBlockChainClient, BlockId, TransactionId};
 use acore::filter::Filter as EthcoreFilter;
-use acore::header::{BlockNumber as EthBlockNumber};
+use acore::header::{BlockNumber as EthBlockNumber, SealType};
 use acore::log_entry::LogEntry;
 use acore::miner::MinerService;
 use acore::miner::external::ExternalMinerService;
@@ -63,6 +63,7 @@ use types::{
 // const EXTRA_INFO_PROOF: &'static str = "Object exists in in blockchain (fetched earlier), extra_info is always available if object exists; qed";
 
 /// Eth rpc implementation.
+#[allow(dead_code)]
 pub struct EthClient<C, S: ?Sized, M, EM>
 where
     C: MiningBlockChainClient,
@@ -107,6 +108,7 @@ where
 
     /// Attempt to get the `Arc<AccountProvider>`, errors if provider was not
     /// set.
+    #[allow(dead_code)]
     fn account_provider(&self) -> Result<Arc<AccountProvider>> { unwrap_provider(&self.accounts) }
 
     fn block(&self, id: BlockId, include_txs: bool) -> Result<Option<Block>> {
@@ -277,16 +279,22 @@ where
         )))
     }
 
+    // ATTENTION: modified this api to return all block hases with POW seal type. Only for Unity POC.
     fn accounts(&self) -> Result<Vec<RpcH256>> {
-        let store = self.account_provider()?;
-        let accounts = store
-            .accounts()
-            .map_err(|e| errors::account("Could not fetch accounts.", e))?;
-        Ok(accounts
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<RpcH256>>())
+        let hases = self.client.block_hashes_with_seal(SealType::Pow);
+        Ok(hases.into_iter().map(Into::into).collect::<Vec<RpcH256>>())
     }
+
+    // fn accounts(&self) -> Result<Vec<RpcH256>> {
+    //     let store = self.account_provider()?;
+    //     let accounts = store
+    //         .accounts()
+    //         .map_err(|e| errors::account("Could not fetch accounts.", e))?;
+    //     Ok(accounts
+    //         .into_iter()
+    //         .map(Into::into)
+    //         .collect::<Vec<RpcH256>>())
+    // }
 
     fn block_number(&self) -> Result<u64> { Ok(self.client.chain_info().best_block_number) }
 

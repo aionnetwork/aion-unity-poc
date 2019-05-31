@@ -68,6 +68,9 @@ pub trait BlockChainClient: Sync + Send {
     /// Get block count at the height of the given block block
     fn block_count(&self, id: BlockId) -> u64;
 
+    /// Get all block hashes with specified seal type
+    fn block_hashes_with_seal(&self, seal_type: SealType) -> Vec<H256>;
+
     /// Get block status by block header hash.
     fn block_status(&self, id: BlockId) -> BlockStatus;
 

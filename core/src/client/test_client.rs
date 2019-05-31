@@ -676,6 +676,8 @@ impl BlockChainClient for TestBlockChainClient {
 
     fn block_count(&self, _id: BlockId) -> u64 { 0 }
 
+    fn block_hashes_with_seal(&self, _seal_type: SealType) -> Vec<H256> { Vec::new() }
+
     fn block_extra_info(&self, id: BlockId) -> Option<BTreeMap<String, String>> {
         self.block(id)
             .map(|block| block.view().header())

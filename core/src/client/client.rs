@@ -1521,6 +1521,13 @@ impl BlockChainClient for Client {
         }
     }
 
+    /// Get all block hashes since given block with specified seal type
+    fn block_hashes_with_seal(&self, seal_type: SealType) -> Vec<H256> {
+        let chain = self.chain.read();
+        let genesis_hash = chain.block_hash(0).expect("genesis block must exist");
+        chain.block_hashes_with_seal(&genesis_hash, seal_type)
+    }
+
     fn block_status(&self, id: BlockId) -> BlockStatus {
         if let BlockId::Pending = id {
             return BlockStatus::Pending;
