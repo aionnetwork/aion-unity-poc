@@ -22,7 +22,7 @@
 
 //! Blockchain database.
 
-use std::collections::{HashMap, hash_map};
+use std::collections::{HashMap, hash_map, VecDeque};
 use std::sync::Arc;
 use std::mem;
 use itertools::Itertools;
@@ -120,6 +120,9 @@ pub trait BlockProvider {
 
     /// Get block count at the height of the given block block
     fn block_count(&self, hash: &H256) -> u64;
+
+    /// Get all block hashes since given block with specified seal type
+    fn block_hashes_with_seal(&self, hash: &H256, seal_type: SealType) -> Vec<H256>;
 
     /// Get the previous block header with sepcified seal type
     fn previous_block_header_with_seal_type(
@@ -310,6 +313,49 @@ impl BlockProvider for BlockChain {
                 return 0; // block not found
             }
         };
+    }
+
+    /// Get all block hashes since given block with specified seal type
+    fn block_hashes_with_seal(&self, hash: &H256, seal_type: SealType) -> Vec<H256> {
+        let block_details = match self.block_details(hash) {
+            Some(block_details) => block_details,
+            _ => {
+                return Vec::new();
+            }
+        };
+
+        let mut hashes = Vec::new();
+        let mut queue = VecDeque::new();
+        queue.push_back((hash.clone(), block_details));
+
+        while !queue.is_empty() {
+            let n = queue.len();
+            for _ in 0..n {
+                let b = queue.pop_front().unwrap();
+
+                match self.block_header(&b.0) {
+                    Some(header) => {
+                        if header.seal_type().clone().unwrap() == seal_type {
+                            hashes.push(b.0.clone());
+                        }
+                    }
+                    None => {}
+                };
+
+                for child_hash in b.1.children {
+                    let block_details = match self.block_details(&child_hash) {
+                        Some(block_details) => block_details,
+                        _ => {
+                            continue;
+                        }
+                    };
+
+                    queue.push_back((child_hash, block_details));
+                }
+            }
+        }
+
+        hashes
     }
 
     /// Get the previous block header with sepcified seal type

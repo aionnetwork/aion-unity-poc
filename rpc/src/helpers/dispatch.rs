@@ -32,6 +32,7 @@ use bytes::Bytes;
 use parking_lot::Mutex;
 use key::Ed25519Signature;
 use acore::miner::MinerService;
+use acore::header::SealType;
 use acore::client::MiningBlockChainClient;
 use acore::account_provider::AccountProvider;
 use acore::transaction::{Action, SignedTransaction, PendingTransaction, Transaction};
@@ -81,6 +82,9 @@ pub trait Dispatcher: Send + Sync + Clone {
 
     /// "Dispatch" a local transaction.
     fn dispatch_transaction(&self, signed_transaction: PendingTransaction) -> Result<H256>;
+
+    /// Get all block hashes with seal type Pos
+    fn block_hashes_pos(&self) -> Vec<RpcH256>;
 }
 
 /// A dispatcher which uses references to a client and miner in order to sign
@@ -204,6 +208,11 @@ impl<C: MiningBlockChainClient, M: MinerService> Dispatcher for FullDispatcher<C
 
     fn dispatch_transaction(&self, signed_transaction: PendingTransaction) -> Result<H256> {
         Self::dispatch_transaction(&*self.client, &*self.miner, signed_transaction)
+    }
+
+    fn block_hashes_pos(&self) -> Vec<RpcH256> {
+        let hases = self.client.block_hashes_with_seal(SealType::Pos);
+        hases.into_iter().map(Into::into).collect::<Vec<RpcH256>>()
     }
 }
 

@@ -91,16 +91,19 @@ impl<D: Dispatcher + 'static> PersonalClient<D> {
 }
 
 impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
-    fn accounts(&self) -> Result<Vec<RpcH256>> {
-        let store = self.account_provider()?;
-        let accounts = store
-            .accounts()
-            .map_err(|e| errors::account("Could not fetch accounts.", e))?;
-        Ok(accounts
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<RpcH256>>())
-    }
+    // fn accounts(&self) -> Result<Vec<RpcH256>> {
+    //     let store = self.account_provider()?;
+    //     let accounts = store
+    //         .accounts()
+    //         .map_err(|e| errors::account("Could not fetch accounts.", e))?;
+    //     Ok(accounts
+    //         .into_iter()
+    //         .map(Into::into)
+    //         .collect::<Vec<RpcH256>>())
+    // }
+
+    // ATTENTION: modified this api to return all pos hashes. Only for Unity POC.
+    fn accounts(&self) -> Result<Vec<RpcH256>> { Ok(self.dispatcher.block_hashes_pos()) }
 
     fn new_account(&self, pass: String) -> Result<RpcH256> {
         let store = self.account_provider()?;
