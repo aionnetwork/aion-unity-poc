@@ -105,7 +105,7 @@ impl Staker {
                 BlockId::Latest,
             )
             .unwrap_or(H128::default());
-        let stake = U128::from(stake).as_u64();
+        let stake = 100u64; // U128::from(stake).as_u64();
 
         // timestamp and previous seed
         let parent_header = client.best_block_header_with_seal_type(&SealType::Pos);
