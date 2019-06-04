@@ -1387,12 +1387,22 @@ impl MinerService for Miner {
         //     }
         // }
 
-        if enacted.len() > 0 || (imported.len() > 0 && false) {
-            // --------------------------------------------------------------------------
-            // | NOTE Code below requires transaction_queue and sealing_work locks.     |
-            // | Make sure to release the locks before calling that method.             |
-            // --------------------------------------------------------------------------
-            self.update_sealing(client);
+//        if enacted.len() > 0 || (imported.len() > 0 && false) {
+//            // --------------------------------------------------------------------------
+//            // | NOTE Code below requires transaction_queue and sealing_work locks.     |
+//            // | Make sure to release the locks before calling that method.             |
+//            // --------------------------------------------------------------------------
+//            self.update_sealing(client);
+//        }
+
+        if imported.len() > 0 {
+            let best_hash = client.best_block_header().hash();
+            for hash in imported {
+                if hash.clone() == best_hash {
+                    self.update_sealing(client);
+                    return;
+                }
+            }
         }
     }
 }
