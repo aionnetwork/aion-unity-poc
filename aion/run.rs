@@ -254,7 +254,7 @@ pub fn execute_impl(cmd: RunCmd) -> Result<(Weak<Client>), String> {
 
         move || {
             while !stop.load(Ordering::SeqCst) {
-                thread::sleep(Duration::from_millis(5000));
+                thread::sleep(Duration::from_secs(24 * 60 * 60));
 
                 trace!(target: "run", "update sealing");
                 client.update_sealing();
