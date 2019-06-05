@@ -1322,7 +1322,7 @@ impl MinerService for Miner {
         client: &MiningBlockChainClient,
         imported: &[H256],
         _invalid: &[H256],
-        enacted: &[H256],
+        _enacted: &[H256],
         retracted: &[H256],
     )
     {
